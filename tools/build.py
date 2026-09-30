@@ -172,35 +172,31 @@ def quote_section(title="Get A Quote Today"):
 
 def reviews_section(dark=False):
     stars = ICON["star"] * 5
-    cards = "".join(f"""
-      <figure class="review">
-        <div class="review__stars" aria-label="5 out of 5 stars">{stars}</div>
-        <blockquote>{text}</blockquote>
-        <figcaption><span class="review__avatar">{name[0]}</span><span><strong>{name}</strong><small>Google review</small></span></figcaption>
-      </figure>""" for name, text in REVIEWS)
+    def card(name, text):
+        initials = "".join(w[0] for w in name.split()[:2]).upper()
+        return f"""
+        <figure class="review">
+          <figcaption><span class="review__avatar">{initials}</span><span><strong>{name}</strong><small>Google review</small></span></figcaption>
+          <div class="review__stars" aria-label="5 out of 5 stars">{stars}</div>
+          <blockquote>{text}</blockquote>
+        </figure>"""
+    cards = "".join(card(n, t) for n, t in REVIEWS)
     return f"""
-<section class="reviews section{' section--gray' if not dark else ''}" id="reviews">
-  <div class="container">
-    <div class="reviews__head reveal">
-      <div>
-        <span class="eyebrow">What customers say</span>
-        <h2>Rated 5.0 on Google</h2>
-      </div>
-      <a class="reviews__badge" href="{REVIEWS_URL}" target="_blank" rel="noopener" aria-label="Read Max Paving reviews on Google">
-        {ICON['google']}
-        <span><strong>5.0</strong><span class="review__stars">{stars}</span><small>4 Google reviews</small></span>
-      </a>
+<section class="reviews section--dark" id="reviews">
+  <div class="container center reveal">
+    <span class="eyebrow">Google reviews</span>
+    <h2>Trusted across Kansas City.</h2>
+    <a class="reviews__rating" href="{REVIEWS_URL}" target="_blank" rel="noopener"><span class="review__stars">{stars}</span><strong>5.0</strong><span>on Google &middot; 4 reviews</span></a>
+  </div>
+  <div class="reviews__marquee">
+    <div class="reviews__track">
+      <div class="reviews__set">{cards}</div>
+      <div class="reviews__set" aria-hidden="true">{cards}</div>
     </div>
-    <div class="reviews__marquee">
-      <div class="reviews__track">
-        <div class="reviews__set">{cards}</div>
-        <div class="reviews__set" aria-hidden="true">{cards}</div>
-      </div>
-    </div>
-    <div class="reviews__actions reveal">
-      <a class="btn btn--black" href="{REVIEWS_URL}" target="_blank" rel="noopener">Read all reviews {ICON['arrow']}</a>
-      <a class="btn btn--outline btn--outline-dark" href="{WRITE_REVIEW_URL}" target="_blank" rel="noopener">Write a review</a>
-    </div>
+  </div>
+  <div class="container reviews__actions">
+    <a class="btn btn--yellow btn--sm" href="{REVIEWS_URL}" target="_blank" rel="noopener">Read all reviews {ICON['arrow']}</a>
+    <a class="btn btn--outline btn--sm" href="{WRITE_REVIEW_URL}" target="_blank" rel="noopener">Write a review</a>
   </div>
 </section>
 """
