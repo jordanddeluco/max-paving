@@ -182,7 +182,7 @@ def reviews_section(dark=False):
         </figure>"""
     cards = "".join(card(n, t) for n, t in REVIEWS)
     return f"""
-<section class="reviews section--dark" id="reviews">
+<section class="reviews section--gray" id="reviews">
   <div class="container center reveal">
     <span class="eyebrow">Google reviews</span>
     <h2>Trusted across Kansas City.</h2>
