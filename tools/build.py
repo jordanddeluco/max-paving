@@ -424,14 +424,14 @@ home = f"""
 
 <section class="section" id="intro">
   <div class="container split">
-    <div class="reveal">
+    <div class="reveal reveal--left">
       <span class="eyebrow">Who we are</span>
       <h2>Quality Results &amp;<br>Continual Communication</h2>
       <p>Max Paving is a start to finish maintenance and new construction company with decades of experience in the concrete and asphalt industry, serving commercial and residential customers within the Kansas City metropolitan area.</p>
       <p>Working with our certified team, you can expect top-class communication, a turnkey process with integrity, and promises to be kept.</p>
       <a class="btn btn--black" href="about.html">About Max Paving {ICON['arrow']}</a>
     </div>
-    <div class="media media--tall media--accent reveal"><img src="assets/img/ABOUT_Commercial_Asphalt.IMG_3069_EDIT-scaled.jpg" alt="Max Paving crew paving a commercial lot in Kansas City" loading="lazy"></div>
+    <div class="media media--tall media--accent reveal reveal--right"><img src="assets/img/ABOUT_Commercial_Asphalt.IMG_3069_EDIT-scaled.jpg" alt="Max Paving crew paving a commercial lot in Kansas City" loading="lazy"></div>
   </div>
 </section>
 
@@ -507,13 +507,13 @@ page("index.html", "Asphalt Paving & Concrete Contractor Kansas City, MO | Max P
 about = page_hero("About", ["About"]) + f"""
 <section class="section">
   <div class="container split">
-    <div class="reveal">
+    <div class="reveal reveal--left">
       <span class="eyebrow">About Max Paving</span>
       <h2>A family-owned business with a growing connection to Kansas City</h2>
       <p>Max Paving is a family-owned business with a growing connection to the Kansas City metropolitan area. With over 20 years of experience in the asphalt and concrete industry, our turnkey constructions and extensive maintenance work are made safe and professional for our customers and team. We value kept promises so expect a timely, qualitative service with top-class communication for a job done right the first time.</p>
       <a class="btn btn--black" href="team.html">Meet Our Team {ICON['arrow']}</a>
     </div>
-    <div class="media media--tall media--accent reveal"><img src="assets/img/ABOUT_Commercial_Asphalt.IMG_3069_EDIT-scaled.jpg" alt="Max Paving crew paving commercial asphalt"></div>
+    <div class="media media--tall media--accent reveal reveal--right"><img src="assets/img/ABOUT_Commercial_Asphalt.IMG_3069_EDIT-scaled.jpg" alt="Max Paving crew paving commercial asphalt"></div>
   </div>
 </section>
 
@@ -538,7 +538,7 @@ about = page_hero("About", ["About"]) + f"""
 
 <section class="section" id="history">
   <div class="container split split--rev">
-    <div class="prose reveal">
+    <div class="prose reveal reveal--right">
       <div class="history-tag">2014 <small>Founded</small></div>
       <h2>History of the Company</h2>
       <p>Max Paving started their asphalt and concrete business in 2014. Despite decades of previous industry experience among the workers, a small and humble beginning laid the ground for the large-scale professional paving company it has turned into.</p>
@@ -546,7 +546,7 @@ about = page_hero("About", ["About"]) + f"""
       <p>Kansas City and its metropolitan area have become home to this industry option which treats customer’s projects like their own. Providing a fair process and top-level communication, and creating processes unique to each customer has led to success.</p>
       <p>Above all, however, pride stems from the opportunity to take care of our team members and their families as well as a number of non-profit organizations supporting local and international communities. A concept of honesty and integrity runs through the entire business with positive change in the world at its core.</p>
     </div>
-    <div class="media media--tall reveal"><img src="assets/img/process.jpg" alt="Max Paving dump truck" loading="lazy"></div>
+    <div class="media media--tall reveal reveal--left"><img src="assets/img/process.jpg" alt="Max Paving dump truck" loading="lazy"></div>
   </div>
 </section>
 """ + quote_section()
@@ -679,13 +679,13 @@ page("services.html", "Asphalt, Concrete & Excavation Services | Max Paving Kans
 commitment = page_hero("Commitment", ["Commitment"]) + f"""
 <section class="section">
   <div class="container split">
-    <div class="reveal">
+    <div class="reveal reveal--left">
       <span class="eyebrow">Our Commitment</span>
       <h2>A promise is a promise</h2>
       <p class="lead">At Max Paving, a promise is a promise and from your free estimate to the finished product, our mission is to keep ours.</p>
       <a class="btn btn--black" href="#quote">Get a Quote {ICON['arrow']}</a>
     </div>
-    <div class="media media--tall media--accent reveal"><img src="assets/img/process.jpg" alt="Max Paving dump truck on site"></div>
+    <div class="media media--tall media--accent reveal reveal--right"><img src="assets/img/process.jpg" alt="Max Paving dump truck on site"></div>
   </div>
 </section>
 
@@ -748,13 +748,13 @@ for sv in SERVICES:
     content = page_hero(sv["h1"], ['<a href="services.html">Services</a>', sv["name"]]) + f"""
 <section class="section">
   <div class="container split">
-    <div class="reveal">
+    <div class="reveal reveal--left">
       <span class="eyebrow">{sv['name']}</span>
       <h2>{sv['intro']}</h2>
       {body_ps}
       <a class="btn btn--black" href="#quote">Get a Free Quote {ICON['arrow']}</a>
     </div>
-    <div class="media media--tall media--accent reveal"><img src="{sv['img']}" alt="{sv['alt']}"></div>
+    <div class="media media--tall media--accent reveal reveal--right"><img src="{sv['img']}" alt="{sv['alt']}"></div>
   </div>
 </section>
 

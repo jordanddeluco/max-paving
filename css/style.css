@@ -566,3 +566,10 @@ p { margin: 0 0 1.1em; }
 .inline-links li { display: inline; }
 .inline-links li + li::before { content: " \00b7 "; color: var(--gray); }
 .inline-links a { font-weight: 700; text-decoration: underline; text-decoration-color: var(--yellow); text-underline-offset: 3px; }
+
+/* Scroll reveals: direction + stagger (delay per child set by JS via --i) ---- */
+.reveal { transition-delay: calc(var(--i, 0) * 90ms); transition-timing-function: cubic-bezier(.25, .46, .45, .94); }
+.reveal--left { transform: translateX(-32px); }
+.reveal--right { transform: translateX(32px); }
+.reveal.is-in { transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal--left, .reveal--right { transform: none; } }
