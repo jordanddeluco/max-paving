@@ -173,7 +173,7 @@ def quote_section(title="Get A Quote Today"):
 def reviews_section(dark=False):
     stars = ICON["star"] * 5
     cards = "".join(f"""
-      <figure class="review reveal">
+      <figure class="review">
         <div class="review__stars" aria-label="5 out of 5 stars">{stars}</div>
         <blockquote>{text}</blockquote>
         <figcaption><span class="review__avatar">{name[0]}</span><span><strong>{name}</strong><small>Google review</small></span></figcaption>
@@ -191,7 +191,12 @@ def reviews_section(dark=False):
         <span><strong>5.0</strong><span class="review__stars">{stars}</span><small>4 Google reviews</small></span>
       </a>
     </div>
-    <div class="reviews__grid">{cards}</div>
+    <div class="reviews__marquee">
+      <div class="reviews__track">
+        <div class="reviews__set">{cards}</div>
+        <div class="reviews__set" aria-hidden="true">{cards}</div>
+      </div>
+    </div>
     <div class="reviews__actions reveal">
       <a class="btn btn--black" href="{REVIEWS_URL}" target="_blank" rel="noopener">Read all reviews {ICON['arrow']}</a>
       <a class="btn btn--outline btn--outline-dark" href="{WRITE_REVIEW_URL}" target="_blank" rel="noopener">Write a review</a>
