@@ -260,7 +260,11 @@ p { margin: 0 0 1.1em; }
   .hero--video { padding: 32px 0 40px; }
   .hero__play { width: 64px; height: 64px; }
   .hero__play svg { width: 28px; height: 28px; }
-  .hero__frame { aspect-ratio: 4 / 3; }
+  .hero__frame { aspect-ratio: 16 / 9; } /* match the video so nothing is cropped */
+  .hero__title { font-size: 1.1rem; margin-bottom: 10px; }
+  .hero__panel { padding: 14px; }
+  .hero--video .hero__actions .btn { padding: 10px 16px; font-size: .78rem; }
+  .hero__sound { width: 36px; height: 36px; right: 10px; bottom: 10px; }
   .hero__cta { padding: 18px 22px; font-size: .95rem; }
   .hide-sm { display: none; }
   .hero__panel .btn--yellow { display: none; } /* the big CTA sits right below the frame on phones */
