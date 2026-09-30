@@ -34,8 +34,11 @@
     );
   }
 
-  /* Reveal on scroll */
-  const reveals = document.querySelectorAll(".reveal");
+  /* Reveal on scroll (children of grids get a stagger index) */
+  document.querySelectorAll(".grid-3, .values, .team, .reviews__grid, .faq__list, .areas__list, .checklist, .steps").forEach((group) => {
+    Array.from(group.children).forEach((el, i) => el.style.setProperty("--i", String(Math.min(i, 8))));
+  });
+  const reveals = document.querySelectorAll(".reveal, .pop");
   if ("IntersectionObserver" in window && reveals.length) {
     const io = new IntersectionObserver(
       (entries) => {
