@@ -23,8 +23,12 @@ The form posts to [FormSubmit](https://formsubmit.co) (`https://formsubmit.co/aj
 - JSON-LD structured data on every page: `LocalBusiness` (address, hours, phone, services), `WebSite`, `WebPage`, `BreadcrumbList`.
 - Service-area section + `areaServed` (14 KC-metro cities), visible FAQ + `FAQPage` schema, 1200×630 social-share image (`assets/img/og-image.jpg`), photos downscaled to 1600px for speed.
 - `sitemap.xml` (with lastmod) and `robots.txt` at the root; one `<h1>` per page; descriptive image `alt` text; hero image preloaded, other images lazy-loaded.
-- Canonical/sitemap URLs assume the site is served at `https://maxpavingkc.com/`. If it lives elsewhere (e.g. `https://<user>.github.io/<repo>/`), change `SITE` and rebuild, or find-and-replace `https://maxpavingkc.com/` in the HTML, `sitemap.xml` and `robots.txt`.
+- Canonical/sitemap URLs are generated from `SITE` in `tools/build.py` (currently `https://jordanddeluco.github.io/max-paving/`). When the custom domain is attached, set `SITE = "https://maxpavingkc.com/"`, add a `CNAME` file containing `maxpavingkc.com`, run `python tools/build.py`, and push.
 
-## Deploy to GitHub Pages
-1. Push this folder to a repository.
-2. Settings → Pages → Source: *Deploy from a branch*, branch `main`, folder `/ (root)`.
+## Build
+All pages are generated from `tools/build.py` (shared header/footer/forms/schema). Edit the script, run `python tools/build.py`, commit and push.
+
+## Hosting
+Live on GitHub Pages from `main` / root: https://jordanddeluco.github.io/max-paving/
+
+To use the real domain: in the repo Settings → Pages → Custom domain enter `maxpavingkc.com`, point the domain's DNS at GitHub Pages (A records 185.199.108–111.153 and a `www` CNAME to `jordanddeluco.github.io`), then update `SITE` as above.
