@@ -259,12 +259,89 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
 .settings__wide { grid-column: 1 / -1; }
 
+/* ---------------------------------------------------------------- marketing */
+.kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+div.kpi:hover { transform: none; }
+.select { padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); max-width: 100%; }
+.chips--map { margin: -2px 0 14px; align-items: center; }
+.chip--dot i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: -1px; box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--c); }
+.chip--dot { color: var(--gray); }
+.chip--dot:not(.is-on) { text-decoration: line-through; opacity: .7; }
+.chip--dot:not(.is-on) i { background: transparent; }
+.chip--dot.is-on { background: var(--white); border-color: var(--c); color: var(--ink); box-shadow: inset 0 0 0 1px var(--c); }
+.chip--dot.is-on span { color: var(--gray); }
+.chip--link { border-color: transparent; background: transparent; color: var(--gray); text-decoration: underline; text-underline-offset: 3px; }
+.chip--link:hover { color: var(--ink); }
+
+.pstat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 4px 9px 4px 8px; border-radius: 99px; background: color-mix(in srgb, var(--c) 13%, #fff); color: color-mix(in srgb, var(--c) 78%, #000); white-space: nowrap; }
+.pstat::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+
+.mk { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 18px; align-items: stretch; }
+.mk .card { margin-bottom: 0; }
+.mk__map { padding: 0; overflow: hidden; }
+/* isolate: keeps Leaflet's internal z-indexes (400–1000) under the drawer and sticky top bar */
+.map, .pick__map { isolation: isolate; position: relative; z-index: 0; }
+.map { height: 620px; width: 100%; background: #e9e7e0; }
+.map__off { padding: 40px 20px; text-align: center; color: var(--gray); margin: 0; }
+.mk__list { padding: 0; display: flex; flex-direction: column; max-height: 620px; }
+.mk__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.plist { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1; }
+.plist__item { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+.plist__item:hover { background: var(--bg); }
+.plist__item.is-active { background: #fffbea; border-color: #f1e3a0; }
+.plist__item:focus-visible { outline: 3px solid var(--yellow-dark); outline-offset: 1px; }
+.plist__dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); margin-top: 4px; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0, 0, 0, .12); }
+.plist__main { min-width: 0; }
+.plist__main strong { display: block; font-size: 14.5px; line-height: 1.3; }
+.plist__main small { display: block; color: var(--gray); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plist__side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.plist__side em { font-style: normal; font-size: 11.5px; font-weight: 700; }
+.plist__side .due { color: var(--red); }
+.plist__side .nopin { color: var(--gray-2); }
+.plist .empty { padding: 24px 12px; }
+
+/* map popup + pin */
+.leaflet-container { font-family: var(--font-body); }
+.leaflet-popup-content-wrapper { border-radius: 12px; }
+.leaflet-popup-content { margin: 14px 16px; font-size: 13.5px; line-height: 1.45; }
+.pop { display: flex; flex-direction: column; gap: 5px; }
+.pop__name { font-family: var(--font-head); font-size: 15.5px; }
+.pop a { color: var(--blue); font-weight: 600; }
+.pop__btns { display: flex; gap: 6px; margin-top: 6px; }
+.pop__btns .btn { color: var(--ink); }
+.pin span { display: block; width: 28px; height: 28px; background: var(--yellow); border: 3px solid var(--black); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 4px 10px rgba(0, 0, 0, .35); }
+
+/* add-prospect steps */
+.wiz { list-style: none; margin: 0; padding: 12px 24px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; border-bottom: 1px solid var(--line); background: #fafaf8; }
+.wiz button { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 6px 4px; font-size: 13px; font-weight: 600; color: var(--gray); cursor: pointer; text-align: left; border-radius: 8px; }
+.wiz button:disabled { cursor: default; opacity: .55; }
+.wiz span { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--white); border: 1px solid var(--line); color: var(--gray); }
+.wiz li.is-done span { background: var(--black); border-color: var(--black); color: var(--yellow); }
+.wiz li.is-on button { color: var(--ink); }
+.wiz li.is-on span { background: var(--yellow); border-color: var(--yellow-dark); color: var(--black); }
+.wiz button:focus-visible { outline: 3px solid var(--yellow-dark); }
+.dup { margin: 12px 0 0; background: var(--yellow-soft); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; font-weight: 600; }
+.pick { margin-top: 16px; display: grid; gap: 10px; }
+.pick .btn-row { align-items: center; }
+.pick__map { height: 300px; border-radius: 10px; border: 1px solid var(--line); overflow: hidden; cursor: crosshair; }
+.activity { margin-top: 22px; }
+.activity h3 { font-size: 14px; margin-bottom: 8px; }
+.activity ul { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--line); }
+.activity li { padding: 4px 0 12px 14px; position: relative; font-size: 13.5px; }
+.activity li::before { content: ""; position: absolute; left: -6px; top: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); border: 2px solid var(--white); }
+.activity li > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.activity p { margin: 4px 0 0; color: var(--ink-2); }
+.log-who { margin: 0 0 16px; padding: 10px 12px; background: var(--bg); border-radius: 9px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-weight: 600; }
+.log-who a { color: var(--blue); }
+.todo__dot--prospects { background: #0e9384; }
+
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); background: var(--black); color: #fff; padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 80; max-width: calc(100% - 32px); }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .wx { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .calc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -280,6 +357,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .banner { padding: 10px 16px; }
   .view { padding: 20px 16px 48px; }
   .dash-grid, .settings { grid-template-columns: minmax(0, 1fr); }
+  .mk { grid-template-columns: minmax(0, 1fr); }
+  .map { height: 420px; }
+  .mk__list { max-height: none; }
+  .kpis--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -289,6 +370,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .search { flex: 1 1 100%; }
   .form__head, .form__body, .form__foot { padding-left: 16px; padding-right: 16px; }
   .form__foot .btn--yellow { flex: 1; }
+  .map { height: 360px; }
+  .select { flex: 1 1 100%; }
+  .wiz { padding: 10px 16px; gap: 4px; }
+  .wiz button { flex-direction: column; text-align: center; gap: 4px; font-size: 11.5px; }
+  .pick__map { height: 240px; }
   /* tables become stacked cards */
   .table-card:has(.table) { background: transparent; border: 0; box-shadow: none; overflow: visible; }
   .table thead { display: none; }

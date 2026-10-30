@@ -8,6 +8,7 @@ A simple back-office panel for running Max Paving, planned for `manage.maxpaving
 |---|---|
 | **Dashboard** | KPIs (open leads, proposals out, won this year and win rate, backlog, money owed and overdue), a 7-day paving-weather strip, a "Needs attention" list (call-backs, site visits, proposal follow-ups, overdue invoices, expiring insurance and licenses, CDL and medical cards, equipment service, warranty check-ins), this week's jobs, and the lead pipeline. |
 | **Schedule** | Crew × day board (Mon–Sat) with weather go/watch/no badges for asphalt and concrete. |
+| **Marketing** | Potential customers you want to win. A 4-step add flow (company → location → contact → status) with duplicate warning, address lookup and a draggable map pin. An interactive map colours pins by status, and toggles show or hide Not contacted / Contacted / Interested / Not interested / Converted, with a synced list beside it. **Log contact** records each call, email or visit and sets the next follow-up, which appears on the dashboard. **Convert to lead** hands an interested prospect to Leads. |
 | **Leads** | Quote requests. The fields match the website's quote form. Statuses run New → Contacted → Site visit → Proposal sent → Won/Lost. **Create estimate** turns a lead into a customer and a draft estimate. |
 | **Estimates** | Line-item proposals in paving units (SY, SF, LF, CY, TON, EA, LS) with a price book. **Print proposal** produces a branded, signable PDF with the warranty terms. **Accept → create job** carries the scope and value over to a job. |
 | **Customers** | Commercial, industrial, residential, HOA, municipal, GC, and church/nonprofit, with jobs and billed totals. |
@@ -26,6 +27,10 @@ It starts with **sample data**: invented customers, jobs and invoices, plus the 
 ## Where the data lives
 
 Everything is saved in the browser's `localStorage` on the computer being used. It is **not shared** between computers or people yet. Use **Settings → Export backup** regularly.
+
+## Maps
+
+The map uses Leaflet (from cdnjs) and OpenStreetMap tiles. **Find on map** looks up an address with OpenStreetMap's free Nominatim geocoder, which is fine for adding prospects one at a time. Bulk imports would need a paid geocoder (Google, Mapbox) or a CSV that already has coordinates. Business addresses are sent to Nominatim only when you press the button or move past the location step.
 
 ## Weather rules
 

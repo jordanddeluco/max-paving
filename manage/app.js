@@ -36,6 +36,13 @@
   const TIMELINES = ['As soon as possible', 'Within 30 days', '1–3 months', '3+ months', 'Just exploring'];
   const UNITS = ['SY', 'SF', 'LF', 'CY', 'TON', 'EA', 'LS', 'HR', 'DAY'];
   const WORK_TYPES = ['Asphalt', 'Concrete', 'Excavation', 'Mixed'];
+  // Marketing prospects
+  const BUSINESS_TYPES = ['Office / office park', 'Retail / shopping center', 'Restaurant', 'Industrial / warehouse', 'Distribution / logistics', 'Medical / healthcare', 'Church / place of worship', 'School / education', 'HOA / apartments', 'Hotel / hospitality', 'Auto dealer / service', 'Self storage', 'Municipal / government', 'General contractor', 'Property management', 'Other'];
+  const P_STATUSES = ['Not contacted', 'Contacted', 'Interested', 'Not interested', 'Converted'];
+  const P_COLOR = { 'Not contacted': '#8a8a85', Contacted: '#2563c9', Interested: '#e5a800', 'Not interested': '#c4351f', Converted: '#1f8a4c' };
+  const P_SOURCES = ['Drive-by', 'Google Maps', 'Referral', 'Bid list / plan room', 'Networking event', 'Past relationship', 'Other'];
+  const P_METHODS = ['Phone call', 'Voicemail', 'Email', 'In person', 'Mailer / door hanger', 'LinkedIn', 'Other'];
+  const pstat = s => `<span class="pstat" style="--c:${P_COLOR[s] || '#8a8a85'}">${esc(s)}</span>`;
 
   const TONE = {
     New: 'blue', Contacted: 'yellow', 'Site visit': 'yellow', 'Proposal sent': 'yellow', Won: 'green', Lost: 'gray',
@@ -62,20 +69,21 @@
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
     badge: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/>',
     calc: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14v4M8 18h.01M12 18h.01"/>',
+    map: '<path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4z"/><path d="M8 2v16M16 6v16"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   };
   const icon = n => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 
   const NAV = [
     ['Overview', [['dashboard', 'Dashboard', 'grid'], ['schedule', 'Schedule', 'calendar']]],
-    ['Sales', [['leads', 'Leads', 'inbox'], ['estimates', 'Estimates', 'file'], ['customers', 'Customers', 'users']]],
+    ['Sales', [['marketing', 'Marketing', 'map'], ['leads', 'Leads', 'inbox'], ['estimates', 'Estimates', 'file'], ['customers', 'Customers', 'users']]],
     ['Field', [['jobs', 'Jobs', 'hammer'], ['logs', 'Daily logs', 'clipboard'], ['staff', 'Crew & staff', 'hardhat'], ['equipment', 'Equipment', 'truck']]],
     ['Office', [['invoices', 'Invoices', 'dollar'], ['docs', 'Compliance', 'shield'], ['warranties', 'Warranties', 'badge']]],
     ['Tools', [['calc', 'Calculators', 'calc'], ['settings', 'Settings', 'gear']]],
   ];
 
   /* ---------------------------------------------------------------- data */
-  const COLLECTIONS = ['customers', 'leads', 'estimates', 'jobs', 'logs', 'invoices', 'staff', 'equipment', 'docs'];
+  const COLLECTIONS = ['customers', 'leads', 'estimates', 'jobs', 'logs', 'invoices', 'staff', 'equipment', 'docs', 'prospects'];
 
   const DEFAULT_SETTINGS = () => ({
     company: { name: 'Max Paving', phone: '(816) 220-7777', email: 'maxpavingkc@gmail.com', address: '29803 SW Eagles Pkwy, Grain Valley, MO 64029' },
@@ -110,14 +118,38 @@
     ].map(([cat, name, unit, price]) => ({ id: uid(), cat, name, unit, price })),
   });
 
+  // Invented businesses pinned around the metro so the map has something to show.
+  function sampleProspects() {
+    const t = today(), d = n => addDays(t, n);
+    const P = (company, businessType, city, state, lat, lng, contactName, phone, status, extra = {}) => ({
+      id: uid(), company, businessType, website: '', address: '', city, state, zip: '', lat, lng, contactName, contactTitle: '', phone, email: '',
+      status, interest: '', estValue: '', source: 'Drive-by', nextFollowUp: '', lastContact: '', notes: '', activity: [], created: d(-21), leadId: '', sample: true, ...extra,
+    });
+    const A = (n, method, outcome, notes) => ({ id: uid(), date: d(n), method, outcome, notes });
+    return [
+      P('Harlan Logistics Park', 'Distribution / logistics', 'Kansas City', 'MO', 39.1405, -94.5302, 'Facilities manager', '(816) 555-0201', 'Not contacted', { interest: 'Commercial Concrete', notes: 'Dock aprons spalling on the east building. Spotted from I-435.' }),
+      P('Brightwater Dental Group', 'Medical / healthcare', 'Lee\'s Summit', 'MO', 38.9195, -94.3755, 'Office manager', '(816) 555-0214', 'Contacted', { interest: 'Asphalt Patch Repair', lastContact: d(-6), nextFollowUp: t, activity: [A(-6, 'Phone call', 'Contacted', 'Spoke with the office manager. The owner decides — call back next week.')] }),
+      P('Cedar Crest Apartments', 'HOA / apartments', 'Independence', 'MO', 39.0868, -94.4087, 'Property manager', '(816) 555-0226', 'Interested', { interest: 'Asphalt Mill & Overlay', estValue: 85000, source: 'Referral', lastContact: d(-3), nextFollowUp: d(4), activity: [A(-3, 'In person', 'Interested', 'Walked the lot with the manager. Wants pricing for a 2-phase overlay next spring.'), A(-10, 'Email', 'Contacted', 'Sent intro email + project photos.')] }),
+      P('Prairie Fire Grill', 'Restaurant', 'Blue Springs', 'MO', 39.0228, -94.2702, 'Owner', '(816) 555-0233', 'Not contacted', { interest: 'Asphalt Patch Repair', notes: 'Potholes at the drive-thru entrance.' }),
+      P('Eastgate Self Storage', 'Self storage', 'Grain Valley', 'MO', 39.0121, -94.2105, 'Site manager', '(816) 555-0238', 'Not contacted', { interest: 'Commercial Concrete' }),
+      P('Northpoint Office Center', 'Office / office park', 'Overland Park', 'KS', 38.9301, -94.6652, 'Building engineer', '(913) 555-0247', 'Contacted', { interest: 'Concrete Repair & Replacement', source: 'Google Maps', lastContact: d(-12), nextFollowUp: d(-2), activity: [A(-12, 'Voicemail', 'Contacted', 'Left voicemail for the building engineer.')] }),
+      P('Cornerstone Fellowship', 'Church / place of worship', 'Olathe', 'KS', 38.8862, -94.7980, 'Facilities committee', '(913) 555-0252', 'Not interested', { lastContact: d(-15), activity: [A(-15, 'Phone call', 'Not interested', 'Lot was redone two years ago. Check back in 2028.')] }),
+      P('Ridgeview Commerce Yard', 'Industrial / warehouse', 'Lenexa', 'KS', 38.9601, -94.7712, 'Operations', '(913) 555-0259', 'Not contacted', { interest: 'Commercial Concrete', source: 'Bid list / plan room' }),
+      P('Midtown Auto Center', 'Auto dealer / service', 'Raytown', 'MO', 39.0040, -94.4562, 'Service manager', '(816) 555-0264', 'Converted', { interest: 'Commercial Asphalt', lastContact: d(-8), activity: [A(-8, 'Converted', 'Converted', 'Turned into a lead.')] }),
+      P('Summit Shops Plaza', 'Retail / shopping center', 'Lee\'s Summit', 'MO', 38.9402, -94.4021, 'Leasing office', '(816) 555-0271', 'Not contacted', { interest: 'Asphalt Mill & Overlay' }),
+      P('Lakeside Hotel & Suites', 'Hotel / hospitality', 'Kansas City', 'MO', 39.2051, -94.6011, 'General manager', '(816) 555-0283', 'Interested', { interest: 'Commercial Asphalt', estValue: 42000, lastContact: d(-2), nextFollowUp: d(1), activity: [A(-2, 'Email', 'Interested', 'Wants a proposal before their budget meeting.')] }),
+    ];
+  }
+
   function seed() {
     const t = today(), d = n => addDays(t, n), S = { sample: true };
     const settings = DEFAULT_SETTINGS();
     const L = (name, qty) => { const p = settings.priceBook.find(x => x.name === name); return { desc: p.name, qty, unit: p.unit, price: p.price }; };
     return {
       v: 1,
-      meta: { sample: true, created: t },
+      meta: { sample: true, created: t, prospectsSeeded: true },
       settings,
+      prospects: sampleProspects(),
       customers: [
         { id: 'c1', name: 'Oakview Office Park', type: 'Commercial', contact: 'Dana (property manager)', phone: '(816) 555-0142', email: 'dana@example.com', address: 'Lee\'s Summit, MO', ...S },
         { id: 'c2', name: 'Riverside Self Storage', type: 'Commercial', contact: 'Front office', phone: '(816) 555-0177', email: '', address: 'Independence, MO', ...S },
@@ -187,6 +219,9 @@
     const def = DEFAULT_SETTINGS();
     o.settings = { ...def, ...(o.settings || {}), company: { ...def.company, ...((o.settings || {}).company || {}) } };
     o.meta = o.meta || {};
+    // Browsers that saved data before Marketing existed still get the sample pins while in sample mode.
+    if (o.meta.sample && !o.meta.prospectsSeeded && !o.prospects.length) o.prospects = sampleProspects();
+    o.meta.prospectsSeeded = true;
     o.v = 1;
     return o;
   }
@@ -241,7 +276,7 @@
         f('service', 'Service needed', 'select', { o: SERVICES }), f('propertyType', 'Property type', 'select', { o: PROPERTY_TYPES }),
         f('address', 'Project address', 'text', { wide: true }),
         f('timeline', 'Timeline', 'select', { o: TIMELINES }),
-        f('source', 'Source', 'select', { o: ['Website form', 'Phone call', 'Referral', 'Repeat customer', 'Bid invitation', 'Other'] }),
+        f('source', 'Source', 'select', { o: ['Website form', 'Phone call', 'Referral', 'Repeat customer', 'Bid invitation', 'Marketing outreach', 'Other'] }),
         f('assignedTo', 'Estimator', 'select', { o: () => db.settings.estimators }), f('siteVisit', 'Site visit', 'date'),
         f('status', 'Status', 'select', { o: ['New', 'Contacted', 'Site visit', 'Proposal sent', 'Won', 'Lost'], def: 'New' }),
         f('created', 'Received', 'date', { def: today }),
@@ -536,12 +571,16 @@
           <button type="submit" class="btn btn--yellow">Save</button>
         </footer>
       </form>`;
-    $('#drawer').hidden = false;
-    document.body.classList.add('is-locked');
+    showDrawer();
     const first = $('#drawer-panel input:not([type=hidden]), #drawer-panel select');
     if (first && !id) first.focus();
   }
-  function closeForm() { $('#drawer').hidden = true; document.body.classList.remove('is-locked'); $('#drawer-panel').innerHTML = ''; }
+  function showDrawer() { $('#drawer').hidden = false; document.body.classList.add('is-locked'); }
+  function closeForm() {
+    if (pickMap) { pickMap.remove(); pickMap = null; }
+    pickPin = null;
+    $('#drawer').hidden = true; document.body.classList.remove('is-locked'); $('#drawer-panel').innerHTML = '';
+  }
 
   function collect(form, key) {
     const m = M[key], data = {};
@@ -704,6 +743,7 @@
     db.docs.filter(d => expStatus(d.expires) !== 'Current').forEach(d => out.push([daysUntil(d.expires), 'docs', d.id, `Renew: ${d.name}`, `${daysUntil(d.expires) < 0 ? 'Expired' : 'Expires'} ${fmtDate(d.expires)}`]));
     db.staff.filter(s => s.active !== 'Inactive').forEach(s => [['cdlExpires', 'CDL'], ['medExpires', 'DOT medical card']].forEach(([k, l]) => { if (s[k] && daysUntil(s[k]) <= 60) out.push([daysUntil(s[k]), 'staff', s.id, `${s.name}: ${l} renewal`, `${daysUntil(s[k]) < 0 ? 'Expired' : 'Expires'} ${fmtDate(s[k])}`]); }));
     db.equipment.filter(q => eqStatus(q) === 'Service due' || q.status === 'Down for repair').forEach(q => out.push([q.status === 'Down for repair' ? -999 : daysUntil(q.serviceDue || t), 'equipment', q.id, q.status === 'Down for repair' ? `${q.unit} ${q.name} is down` : `Service ${q.unit} ${q.name}`, q.status === 'Down for repair' ? (q.notes || 'Down for repair') : `Due ${fmtDate(q.serviceDue)}${num(q.serviceHours) ? ` or ${fix(q.serviceHours, 0)} hrs (now ${fix(q.hours, 0)})` : ''}`]));
+    db.prospects.filter(followDue).forEach(p => out.push([daysUntil(p.nextFollowUp), 'prospects', p.id, `Follow up: ${p.company}`, `${[p.contactName, p.phone].filter(Boolean).join(' · ') || 'Prospect'} · due ${inWords(daysUntil(p.nextFollowUp))}`]));
     db.jobs.filter(j => warrantyStatus(j) === 'Expiring').forEach(j => out.push([daysUntil(warrantyOf(j)), 'jobs', j.id, `Warranty check-in: ${j.name}`, `Warranty ends ${fmtDate(warrantyOf(j))} — walk it before it does`]));
     return out.sort((a, b) => a[0] - b[0]);
   }
@@ -740,7 +780,7 @@
       <div class="dash-grid">
         <section class="card">
           <div class="card__head"><h2>Needs attention</h2><span class="count">${items.length}</span></div>
-          ${items.length ? `<ul class="todo">${items.map(([, m, id, title, sub]) => `<li data-act="edit" data-m="${m}" data-id="${id}" tabindex="0"><span class="todo__dot todo__dot--${m}"></span><div><strong>${esc(title)}</strong><small>${esc(sub)}</small></div></li>`).join('')}</ul>` : '<p class="muted">All caught up.</p>'}
+          ${items.length ? `<ul class="todo">${items.map(([, m, id, title, sub]) => `<li data-act="${m === 'prospects' ? 'p-open' : 'edit'}" data-m="${m}" data-id="${id}" tabindex="0"><span class="todo__dot todo__dot--${m}"></span><div><strong>${esc(title)}</strong><small>${esc(sub)}</small></div></li>`).join('')}</ul>` : '<p class="muted">All caught up.</p>'}
         </section>
         <div class="stack">
           <section class="card">
@@ -817,6 +857,304 @@
     if (id === 'base') { const cy = sf * ft / 27, t = sf * ft * g('den') / 2000 * w; out('cy', fix(cy)); out('tons', fix(t)); out('loads', fix(Math.ceil(t / 20), 0)); }
   }
 
+  /* ---------------------------------------------------------------- marketing: prospects + map */
+  const OSM = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }];
+  const mk = { show: new Set(P_STATUSES), type: '', q: '', view: null, focusId: null };
+  let map = null, markers = {}, pickMap = null, pickPin = null;
+  const hasPin = p => p.lat !== '' && p.lat != null && p.lng !== '' && p.lng != null && isFinite(p.lat) && isFinite(p.lng);
+  const followDue = p => !!p.nextFollowUp && daysUntil(p.nextFollowUp) <= 0 && !['Converted', 'Not interested'].includes(p.status);
+  const placeOf = p => [p.city, p.state].filter(Boolean).join(', ');
+  const fullAddress = p => [p.address, p.city, [p.state, p.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const telHref = s => 'tel:' + String(s).replace(/[^\d+]/g, '');
+
+  function filteredProspects() {
+    const q = mk.q.trim().toLowerCase();
+    return db.prospects
+      .filter(p => mk.show.has(p.status) && (!mk.type || p.businessType === mk.type) &&
+        (!q || [p.company, p.contactName, p.city, p.address, p.zip, p.phone, p.email, p.businessType, p.notes].join(' ').toLowerCase().includes(q)))
+      .sort((a, b) => (followDue(b) - followDue(a)) || a.company.localeCompare(b.company));
+  }
+
+  function marketing() {
+    const all = db.prospects, n = s => all.filter(p => p.status === s).length, due = all.filter(followDue).length;
+    const types = [...new Set([...BUSINESS_TYPES, ...all.map(p => p.businessType).filter(Boolean)])];
+    return pageHead('Marketing', 'Businesses you want to win. Add them as you find them, work them from the map, and turn the interested ones into leads.', '<button class="btn btn--yellow" type="button" data-act="p-new">+ Add prospect</button>') + `
+      <section class="kpis kpis--4">
+        <div class="kpi"><small>Prospects</small><strong>${all.length}</strong><span>${all.filter(hasPin).length} pinned on the map</span></div>
+        <div class="kpi"><small>Not contacted yet</small><strong>${n('Not contacted')}</strong><span>Ready for a first call</span></div>
+        <div class="kpi"><small>Interested</small><strong>${n('Interested')}</strong><span>${money(all.filter(p => p.status === 'Interested').reduce((s, p) => s + num(p.estValue), 0))} in possible work</span></div>
+        <div class="kpi${due ? ' kpi--alert' : ''}"><small>Follow-ups due</small><strong>${due}</strong><span>${n('Converted')} turned into leads so far</span></div>
+      </section>
+      <div class="toolbar">
+        <input class="search" type="search" placeholder="Search company, contact, city…" value="${esc(mk.q)}" data-mk="q" aria-label="Search prospects">
+        <select class="select" data-mk="type" aria-label="Business type"><option value="">All business types</option>${types.map(t => `<option${t === mk.type ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
+      </div>
+      <div class="chips chips--map" role="group" aria-label="Statuses shown on the map">
+        ${P_STATUSES.map(s => `<button type="button" class="chip chip--dot${mk.show.has(s) ? ' is-on' : ''}" style="--c:${P_COLOR[s]}" data-act="p-toggle" data-v="${esc(s)}" aria-pressed="${mk.show.has(s)}"><i></i>${esc(s)} <span>${n(s)}</span></button>`).join('')}
+        <button type="button" class="chip chip--link" data-act="p-only" data-v="Not contacted">Only not contacted</button>
+        <button type="button" class="chip chip--link" data-act="p-all">Show all</button>
+      </div>
+      <div class="mk">
+        <div class="card mk__map"><div class="map" id="mk-map" role="region" aria-label="Map of prospects"></div></div>
+        <div class="card mk__list">
+          <div class="mk__head"><strong data-mk-count></strong><span class="muted small">Click one to find it on the map</span></div>
+          <ul class="plist" id="mk-list"></ul>
+        </div>
+      </div>`;
+  }
+
+  function initMap() {
+    const el = $('#mk-map'); if (!el) return;
+    if (!window.L) { el.innerHTML = '<p class="map__off">The map couldn’t load. Check the internet connection — the list still works.</p>'; return; }
+    // Wheel zoom only after a click into the map, so scrolling the page doesn't hijack the map.
+    map = L.map(el, { scrollWheelZoom: false });
+    map.on('click focus', () => map.scrollWheelZoom.enable());
+    map.on('mouseout blur', () => map.scrollWheelZoom.disable());
+    L.tileLayer(...OSM).addTo(map);
+    const pins = db.prospects.filter(hasPin);
+    if (mk.view) map.setView(mk.view.c, mk.view.z);
+    else if (pins.length) map.fitBounds(L.latLngBounds(pins.map(p => [p.lat, p.lng])), { padding: [36, 36], maxZoom: 13 });
+    else map.setView([db.settings.lat, db.settings.lon], 10);
+    map.on('moveend', () => { if (map) mk.view = { c: map.getCenter(), z: map.getZoom() }; });
+  }
+
+  function popupHtml(p) {
+    return `<div class="pop">
+      <strong class="pop__name">${esc(p.company)}</strong>
+      <small class="muted">${esc([p.businessType, placeOf(p)].filter(Boolean).join(' · '))}</small>
+      <div>${pstat(p.status)}</div>
+      ${p.contactName ? `<div>${esc(p.contactName)}${p.contactTitle ? `, ${esc(p.contactTitle)}` : ''}</div>` : ''}
+      ${p.phone ? `<a href="${telHref(p.phone)}">${esc(p.phone)}</a>` : ''}
+      ${p.email ? `<a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : ''}
+      <small class="muted">${p.lastContact ? `Last contact ${esc(fmtDate(p.lastContact))}` : 'Never contacted'}${p.nextFollowUp && !['Converted', 'Not interested'].includes(p.status) ? ` · follow up ${esc(shortDate(p.nextFollowUp))}` : ''}</small>
+      <div class="pop__btns">
+        ${p.status !== 'Converted' ? `<button type="button" class="btn btn--yellow btn--sm" data-act="p-log" data-id="${p.id}">Log contact</button>` : ''}
+        <button type="button" class="btn btn--ghost btn--sm" data-act="p-open" data-id="${p.id}">Open</button>
+      </div>
+    </div>`;
+  }
+
+  function updateMarketing() {
+    const list = $('#mk-list'); if (!list) return;
+    const rows = filteredProspects();
+    $('[data-mk-count]', view).textContent = `${rows.length} of ${db.prospects.length} prospects`;
+    list.innerHTML = rows.map(p => `
+      <li class="plist__item" data-act="p-focus" data-id="${p.id}" tabindex="0">
+        <span class="plist__dot" style="--c:${P_COLOR[p.status]}"></span>
+        <div class="plist__main"><strong>${esc(p.company)}</strong><small>${esc([p.businessType, placeOf(p)].filter(Boolean).join(' · '))}</small>${p.contactName || p.phone ? `<small>${esc([p.contactName, p.phone].filter(Boolean).join(' · '))}</small>` : ''}</div>
+        <div class="plist__side">${pstat(p.status)}${followDue(p) ? `<em class="due">Follow up ${daysUntil(p.nextFollowUp) < 0 ? 'overdue' : 'today'}</em>` : ''}${hasPin(p) ? '' : '<em class="nopin">No map pin</em>'}</div>
+      </li>`).join('') || '<li class="empty">No prospects match. Turn on more statuses, or add one.</li>';
+    if (!map) return;
+    Object.values(markers).forEach(m => m.remove()); markers = {};
+    rows.filter(hasPin).forEach(p => {
+      markers[p.id] = L.circleMarker([p.lat, p.lng], { radius: 9, weight: 2, color: '#ffffff', fillColor: P_COLOR[p.status], fillOpacity: 1 })
+        .bindTooltip(esc(p.company), { direction: 'top', offset: [0, -8] })
+        .bindPopup(() => popupHtml(p), { minWidth: 230, maxWidth: 280 })
+        .on('click', () => markActive(p.id))
+        .addTo(map);
+    });
+    if (mk.focusId && markers[mk.focusId]) focusProspect(mk.focusId);
+    mk.focusId = null;
+  }
+  function markActive(id) {
+    $$('.plist__item.is-active', view).forEach(li => li.classList.remove('is-active'));
+    const li = $(`.plist__item[data-id="${id}"]`, view);
+    if (li) { li.classList.add('is-active'); li.scrollIntoView({ block: 'nearest' }); }
+  }
+  function focusProspect(id) {
+    const m = markers[id];
+    if (!map || !m) { openProspect(id); return; }
+    map.setView(m.getLatLng(), Math.max(map.getZoom(), 14));
+    m.openPopup(); markActive(id);
+    if (window.innerWidth < 900) $('#mk-map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Add / edit flow: four short steps, then save.
+  const P_STEPS = ['Company', 'Location', 'Contact', 'Status & next step'];
+  const P_FIELDS = [
+    [f('company', 'Company name', 'text', { req: true, wide: true }), f('businessType', 'Business type', 'select', { o: BUSINESS_TYPES }), f('website', 'Website', 'url'),
+      f('interest', 'Work they probably need', 'select', { o: SERVICES }), f('source', 'How you found them', 'select', { o: P_SOURCES })],
+    [f('address', 'Street address', 'text', { wide: true }), f('city', 'City'), f('state', 'State', 'select', { o: ['MO', 'KS'] }), f('zip', 'ZIP')],
+    [f('contactName', 'Contact person'), f('contactTitle', 'Title / role'), f('phone', 'Phone', 'tel'), f('email', 'Email', 'email')],
+    [f('status', 'Status', 'select', { o: P_STATUSES }), f('nextFollowUp', 'Next follow-up', 'date'), f('estValue', 'Estimated job size', 'money'), f('notes', 'Notes', 'textarea', { wide: true })],
+  ];
+  const activityHtml = p => (p.activity || []).length ? `<div class="activity"><h3>Contact history</h3><ul>${p.activity.map(a => `<li><div><strong>${esc(fmtDate(a.date))}</strong> · ${esc(a.method)} ${pstat(a.outcome)}</div>${a.notes ? `<p>${esc(a.notes)}</p>` : ''}</li>`).join('')}</ul></div>` : '';
+
+  function openProspect(id, step = 0) {
+    const p = (id && find('prospects', id)) || { status: 'Not contacted', state: 'MO' };
+    const isNew = !p.id, last = P_STEPS.length - 1;
+    $('#drawer-panel').innerHTML = `
+      <form class="form" data-pform data-id="${p.id || ''}" data-step="0" data-max="${isNew ? 0 : last}" novalidate>
+        <header class="form__head">
+          <div><small>${isNew ? 'Marketing · new prospect' : 'Marketing · prospect'}</small><h2>${isNew ? 'Add a potential customer' : esc(p.company)}</h2></div>
+          <button type="button" class="x x--lg" data-act="close" aria-label="Close">×</button>
+        </header>
+        <ol class="wiz">${P_STEPS.map((s, i) => `<li><button type="button" data-act="p-step" data-v="${i}"><span>${i + 1}</span>${esc(s)}</button></li>`).join('')}</ol>
+        <div class="form__body">
+          ${p.sample ? '<p class="note">Sample prospect — edit it, or clear all sample data in Settings.</p>' : ''}
+          ${P_FIELDS.map((fs, i) => `<section class="wiz__step" data-step="${i}"${i ? ' hidden' : ''}>
+            ${i === 1 ? '<p class="muted small">Type the address and press <strong>Find on map</strong>, or just click the map to drop the pin. Drag the pin to fine-tune it.</p>' : ''}
+            <div class="fields">${fs.map(fd => fieldHtml(fd, p[fd.k] ?? '')).join('')}</div>
+            ${i === 0 ? '<p class="dup" data-dup hidden></p>' : ''}
+            ${i === 1 ? `<div class="pick">
+              <div class="btn-row"><button type="button" class="btn btn--black btn--sm" data-act="p-geocode">Find on map</button><span class="small muted" data-geo-msg>${hasPin(p) ? 'Pinned on the map.' : 'No pin yet.'}</span></div>
+              <div class="pick__map" id="pick-map"></div>
+              <input type="hidden" name="lat" value="${esc(p.lat ?? '')}"><input type="hidden" name="lng" value="${esc(p.lng ?? '')}">
+            </div>` : ''}
+            ${i === last ? activityHtml(p) : ''}
+          </section>`).join('')}
+        </div>
+        <footer class="form__foot">
+          ${isNew ? '' : '<button type="button" class="btn btn--danger btn--sm" data-act="p-delete">Delete</button>'}
+          <div class="form__actions">${isNew ? '' : `${p.status !== 'Converted' ? '<button type="button" class="btn btn--ghost btn--sm" data-act="p-log">Log contact</button><button type="button" class="btn btn--ghost btn--sm" data-act="p-convert">Convert to lead</button>' : ''}`}</div>
+          <button type="button" class="btn btn--ghost" data-act="p-back">Back</button>
+          <button type="button" class="btn btn--black" data-act="p-next">Next</button>
+          <button type="submit" class="btn btn--yellow" data-save>Save prospect</button>
+        </footer>
+      </form>`;
+    showDrawer();
+    goStep($('form[data-pform]'), step);
+  }
+
+  function goStep(form, n) {
+    const isNew = !form.dataset.id, last = P_STEPS.length - 1, max = Math.max(num(form.dataset.max), n);
+    form.dataset.step = n; form.dataset.max = max;
+    $$('.wiz__step', form).forEach(s => { s.hidden = +s.dataset.step !== n; });
+    $$('.wiz li', form).forEach((li, i) => {
+      li.classList.toggle('is-on', i === n); li.classList.toggle('is-done', i < n);
+      const b = $('button', li); b.disabled = isNew && i > max; if (i === n) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
+    $('[data-act=p-back]', form).hidden = n === 0;
+    $('[data-act=p-next]', form).hidden = n === last;
+    $('[data-save]', form).hidden = isNew && n < last;
+    if (n === 1) initPickMap(form);
+    const first = $(`.wiz__step[data-step="${n}"] input:not([type=hidden]), .wiz__step[data-step="${n}"] select`, form);
+    if (first && isNew) first.focus({ preventScroll: true });
+  }
+  function nextStep(form) {
+    const n = +form.dataset.step, e = form.elements;
+    if (n === 0 && !e.company.value.trim()) { e.company.closest('.field').classList.add('is-bad'); e.company.focus(); toast('Add the company name first.'); return; }
+    e.company.closest('.field').classList.remove('is-bad');
+    if (n === 1 && e.lat.value === '' && (e.address.value.trim() || e.city.value.trim())) geocodeForm(form);
+    goStep(form, Math.min(n + 1, P_STEPS.length - 1));
+  }
+
+  function initPickMap(form) {
+    const el = $('#pick-map', form); if (!el) return;
+    if (!window.L) { el.innerHTML = '<p class="map__off">Map unavailable — you can still save the address.</p>'; return; }
+    if (pickMap) { setTimeout(() => pickMap && pickMap.invalidateSize(), 50); return; }
+    const has = form.elements.lat.value !== '', lat = num(form.elements.lat.value), lng = num(form.elements.lng.value);
+    pickMap = L.map(el).setView(has ? [lat, lng] : [db.settings.lat, db.settings.lon], has ? 16 : 10);
+    L.tileLayer(...OSM).addTo(pickMap);
+    if (has) setPin(form, lat, lng);
+    pickMap.on('click', ev => setPin(form, ev.latlng.lat, ev.latlng.lng, false, 'Pin placed. Drag it to adjust.'));
+    setTimeout(() => pickMap && pickMap.invalidateSize(), 260);
+  }
+  function setPin(form, lat, lng, recenter, msg) {
+    form.elements.lat.value = (+lat).toFixed(6); form.elements.lng.value = (+lng).toFixed(6);
+    if (pickMap) {
+      if (!pickPin) {
+        pickPin = L.marker([lat, lng], { draggable: true, icon: L.divIcon({ className: 'pin', html: '<span></span>', iconSize: [28, 28], iconAnchor: [14, 28] }) }).addTo(pickMap);
+        pickPin.on('dragend', () => { const ll = pickPin.getLatLng(); form.elements.lat.value = ll.lat.toFixed(6); form.elements.lng.value = ll.lng.toFixed(6); geoMsg(form, 'Pin moved.'); });
+      } else pickPin.setLatLng([lat, lng]);
+      if (recenter) pickMap.setView([lat, lng], 16);
+    }
+    if (msg) geoMsg(form, msg);
+  }
+  const geoMsg = (form, m) => { const el = $('[data-geo-msg]', form); if (el) el.textContent = m; };
+
+  // Free OpenStreetMap geocoder (Nominatim), biased toward the KC metro. Light, one-at-a-time use only.
+  function geocode(q) {
+    const url = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ q, format: 'jsonv2', limit: '1', countrycodes: 'us', viewbox: '-95.4,39.6,-93.4,38.4' });
+    return fetch(url, { headers: { Accept: 'application/json' } })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(j => j[0] ? { lat: +j[0].lat, lng: +j[0].lon } : null);
+  }
+  async function geocodeForm(form) {
+    const e = form.elements, q = [e.address.value, e.city.value, e.state.value, e.zip.value].map(s => s.trim()).filter(Boolean).join(', ');
+    if (!q) { geoMsg(form, 'Type an address or city first.'); return false; }
+    geoMsg(form, 'Looking up the address…');
+    try {
+      const hit = await geocode(q);
+      if (!form.isConnected) return false;
+      if (!hit) { geoMsg(form, 'Couldn’t find that address. Click the map to drop the pin yourself.'); return false; }
+      setPin(form, hit.lat, hit.lng, true, 'Found it. Drag the pin if it’s not exactly right.');
+      return true;
+    } catch (err) { geoMsg(form, 'Address lookup isn’t available right now. Click the map to drop the pin.'); return false; }
+  }
+
+  // quiet = save without closing (used before Log contact / Convert)
+  async function saveProspect(form, quiet) {
+    const e = form.elements;
+    if (!e.company.value.trim()) { goStep(form, 0); e.company.closest('.field').classList.add('is-bad'); e.company.focus(); toast('Add the company name first.'); return null; }
+    if (e.lat.value === '' && (e.address.value.trim() || e.city.value.trim())) await geocodeForm(form);
+    const data = {};
+    P_FIELDS.flat().forEach(fd => { let v = e[fd.k].value.trim(); if (fd.t === 'money' && v !== '') v = num(v); data[fd.k] = v; });
+    data.lat = e.lat.value === '' ? '' : num(e.lat.value);
+    data.lng = e.lng.value === '' ? '' : num(e.lng.value);
+    let p = form.dataset.id ? find('prospects', form.dataset.id) : null;
+    const isNew = !p;
+    if (p) Object.assign(p, data);
+    else { p = { id: uid(), created: today(), activity: [], lastContact: '', leadId: '', ...data }; db.prospects.push(p); form.dataset.id = p.id; }
+    save();
+    if (quiet) return p;
+    mk.show.add(p.status); mk.focusId = hasPin(p) ? p.id : null;
+    closeForm();
+    if (ui.page === 'marketing') render(); else location.hash = 'marketing';
+    toast(`${p.company} ${isNew ? 'added' : 'saved'}${hasPin(p) ? '' : ' — no map pin yet'}.`);
+    return p;
+  }
+
+  function openLog(id) {
+    const p = find('prospects', id); if (!p) return;
+    closeForm();
+    $('#drawer-panel').innerHTML = `
+      <form class="form" data-plog data-id="${p.id}" novalidate>
+        <header class="form__head">
+          <div><small>Log contact</small><h2>${esc(p.company)}</h2></div>
+          <button type="button" class="x x--lg" data-act="close" aria-label="Close">×</button>
+        </header>
+        <div class="form__body">
+          ${p.contactName || p.phone || p.email ? `<p class="log-who">${esc([p.contactName, p.contactTitle].filter(Boolean).join(', '))}${p.phone ? ` <a href="${telHref(p.phone)}">${esc(p.phone)}</a>` : ''}${p.email ? ` <a href="mailto:${esc(p.email)}">${esc(p.email)}</a>` : ''}</p>` : ''}
+          <div class="fields">
+            ${fieldHtml(f('date', 'Date', 'date'), today())}
+            ${fieldHtml(f('method', 'How you reached out', 'select', { o: P_METHODS }), 'Phone call')}
+            ${fieldHtml(f('outcome', 'Where it stands now', 'select', { o: ['Contacted', 'Interested', 'Not interested'] }), p.status === 'Interested' ? 'Interested' : 'Contacted')}
+            ${fieldHtml(f('nextFollowUp', 'Next follow-up', 'date'), addDays(today(), 7))}
+            ${fieldHtml(f('notes', 'What happened', 'textarea', { wide: true }), '')}
+          </div>
+          ${activityHtml(p)}
+        </div>
+        <footer class="form__foot">
+          <div class="form__actions"></div>
+          <button type="button" class="btn btn--ghost" data-act="close">Cancel</button>
+          <button type="submit" class="btn btn--yellow">Save contact</button>
+        </footer>
+      </form>`;
+    showDrawer();
+  }
+  function saveLog(form) {
+    const p = find('prospects', form.dataset.id), e = form.elements;
+    const entry = { id: uid(), date: e.date.value || today(), method: e.method.value || 'Other', outcome: e.outcome.value || 'Contacted', notes: e.notes.value.trim() };
+    p.activity = [entry, ...(p.activity || [])].sort((a, b) => b.date.localeCompare(a.date));
+    p.status = entry.outcome;
+    p.lastContact = [p.lastContact, entry.date].filter(Boolean).sort().pop();
+    p.nextFollowUp = entry.outcome === 'Not interested' ? '' : e.nextFollowUp.value;
+    save(); mk.show.add(p.status); mk.focusId = ui.page === 'marketing' && hasPin(p) ? p.id : null;
+    closeForm(); render(); toast(`Logged. ${p.company} is now “${p.status}”.`);
+  }
+
+  function convertProspect(p) {
+    const typeMap = { 'Industrial / warehouse': 'Industrial / Warehouse', 'Distribution / logistics': 'Industrial / Warehouse', 'HOA / apartments': 'HOA / Multifamily', 'Municipal / government': 'Municipal / Government', 'School / education': 'Municipal / Government', 'Church / place of worship': 'Church / Nonprofit' };
+    const lead = { id: uid(), created: today(), name: p.contactName || p.company, company: p.contactName ? p.company : '', phone: p.phone, email: p.email, service: p.interest || 'Not sure yet', propertyType: typeMap[p.businessType] || 'Commercial', address: fullAddress(p), timeline: '', source: 'Marketing outreach', assignedTo: '', siteVisit: '', status: 'Contacted', notes: p.notes || '' };
+    db.leads.push(lead);
+    p.status = 'Converted'; p.leadId = lead.id; p.nextFollowUp = '';
+    p.activity = [{ id: uid(), date: today(), method: 'Converted', outcome: 'Converted', notes: 'Turned into a lead.' }, ...(p.activity || [])];
+    save(); closeForm(); render();
+    openForm('leads', lead.id);
+    toast(`${p.company} is now a lead — assign an estimator and set the site visit.`);
+  }
+
   /* ---------------------------------------------------------------- settings */
   function settings() {
     const s = db.settings, c = s.company;
@@ -870,7 +1208,7 @@
   }
 
   /* ---------------------------------------------------------------- render */
-  const VIEWS = { dashboard, schedule, warranties, calc: calculators, settings };
+  const VIEWS = { dashboard, schedule, marketing, warranties, calc: calculators, settings };
   const TITLES = Object.fromEntries(NAV.flatMap(([, items]) => items.map(([k, l]) => [k, l])));
 
   function render() {
@@ -880,13 +1218,16 @@
     $('#top-title').textContent = TITLES[ui.page] || '';
     $('#top-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     $('#banner').innerHTML = db.meta.sample ? `<div class="banner"><span><strong>You’re looking at sample data.</strong> Click around, then clear it when you’re ready to enter real work.</span><button type="button" class="btn btn--black btn--sm" data-act="clear-sample">Clear sample data</button></div>` : '';
+    if (map) { map.remove(); map = null; markers = {}; }
     view.innerHTML = VIEWS[ui.page] ? VIEWS[ui.page]() : listView(ui.page);
     if (M[ui.page]) applySearch(ui.page);
+    if (ui.page === 'marketing') { initMap(); updateMarketing(); }
     if (ui.page === 'calc') $$('[data-calc]', view).forEach(runCalc);
     document.title = `${TITLES[ui.page] || 'Dashboard'} · Max Paving Manage`;
   }
   function badgeCount(k) {
-    const n = k === 'leads' ? db.leads.filter(l => l.status === 'New').length
+    const n = k === 'marketing' ? db.prospects.filter(followDue).length
+      : k === 'leads' ? db.leads.filter(l => l.status === 'New').length
       : k === 'invoices' ? db.invoices.filter(i => invStatus(i) === 'Overdue').length
       : k === 'docs' ? db.docs.filter(d => expStatus(d.expires) !== 'Current').length : 0;
     return n ? `<em class="side__count">${n}</em>` : '';
@@ -905,8 +1246,33 @@
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]'); if (!el) return;
     const act = el.dataset.act;
-    const form = el.closest('form[data-form]');
+    const form = el.closest('form[data-form]'), pform = el.closest('form[data-pform]');
     switch (act) {
+      // marketing
+      case 'p-new': openProspect(); break;
+      case 'p-open': openProspect(el.dataset.id); break;
+      case 'p-focus': focusProspect(el.dataset.id); break;
+      case 'p-step': goStep(pform, +el.dataset.v); break;
+      case 'p-next': nextStep(pform); break;
+      case 'p-back': goStep(pform, Math.max(0, +pform.dataset.step - 1)); break;
+      case 'p-geocode': geocodeForm(pform); break;
+      case 'p-log': if (pform) saveProspect(pform, true).then(p => p && openLog(p.id)); else openLog(el.dataset.id); break;
+      case 'p-convert': saveProspect(pform, true).then(p => p && convertProspect(p)); break;
+      case 'p-delete': {
+        if (!confirmTwice(el, 'Click again to delete')) break;
+        db.prospects = db.prospects.filter(p => p.id !== pform.dataset.id);
+        save(); closeForm(); render(); toast('Prospect deleted.'); break;
+      }
+      case 'p-toggle': {
+        const s = el.dataset.v; if (mk.show.has(s)) mk.show.delete(s); else mk.show.add(s);
+        el.classList.toggle('is-on', mk.show.has(s)); el.setAttribute('aria-pressed', String(mk.show.has(s)));
+        updateMarketing(); break;
+      }
+      case 'p-all': case 'p-only': {
+        mk.show = new Set(act === 'p-all' ? P_STATUSES : [el.dataset.v]);
+        $$('[data-act=p-toggle]', view).forEach(b => { const on = mk.show.has(b.dataset.v); b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', String(on)); });
+        updateMarketing(); break;
+      }
       case 'new': openForm(el.dataset.m); break;
       case 'edit': openForm(el.dataset.m, el.dataset.id); break;
       case 'close': closeForm(); break;
@@ -945,6 +1311,15 @@
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-act], li[data-act]')) { e.preventDefault(); e.target.click(); }
   });
   document.addEventListener('submit', e => {
+    const pf = e.target.closest('form[data-pform]');
+    if (pf) {
+      e.preventDefault();
+      // Enter on an early step of a new prospect moves forward instead of saving half-filled.
+      if (!pf.dataset.id && +pf.dataset.step < P_STEPS.length - 1) nextStep(pf); else saveProspect(pf);
+      return;
+    }
+    const lf = e.target.closest('form[data-plog]');
+    if (lf) { e.preventDefault(); saveLog(lf); return; }
     const form = e.target.closest('form[data-form]'); if (!form) return;
     e.preventDefault();
     const key = form.dataset.form, isNew = !form.dataset.id;
@@ -953,6 +1328,13 @@
   document.addEventListener('input', e => {
     const t = e.target;
     if (t.matches('[data-search]')) { ui.filters[t.dataset.search].q = t.value; applySearch(t.dataset.search); }
+    if (t.matches('[data-mk=q]')) { mk.q = t.value; updateMarketing(); }
+    if (t.name === 'company' && t.closest('form[data-pform]')) {
+      const form = t.closest('form[data-pform]'), v = t.value.trim().toLowerCase(), box = $('[data-dup]', form);
+      const hit = v.length > 2 && (db.prospects.some(p => p.id !== form.dataset.id && p.company.toLowerCase() === v) ? 'prospects' : db.customers.some(c => c.name.toLowerCase() === v) ? 'customers' : '');
+      box.hidden = !hit;
+      if (hit) box.textContent = `Heads up: “${t.value.trim()}” is already in your ${hit}.`;
+    }
     if (t.closest('[data-lines]') && t.matches('[name=l_qty], [name=l_price]')) recalcLines(t.closest('[data-lines]'));
     const card = t.closest('[data-calc]');
     if (card) {
@@ -962,6 +1344,7 @@
   });
   document.addEventListener('change', e => {
     const t = e.target;
+    if (t.matches('[data-mk=type]')) { mk.type = t.value; updateMarketing(); }
     if (t.matches('[data-pb]') && t.value) {
       const p = db.settings.priceBook.find(x => x.id === t.value), w = t.closest('[data-lines]');
       $('tbody', w).insertAdjacentHTML('beforeend', lineRow({ desc: p.name, unit: p.unit, price: p.price, qty: '' }));
