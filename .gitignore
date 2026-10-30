@@ -1,2 +1,4 @@
 .DS_Store
 Thumbs.db
+manage/server/data/
+manage/server/.env

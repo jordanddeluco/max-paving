@@ -16,21 +16,25 @@
 <body>
 <div class="app">
   <aside class="side" id="side">
-    <a class="side__brand" href="#dashboard"><img src="img/logo-white.png" alt="Max Paving" width="1587" height="832"><span>Manage</span></a>
+    <a class="side__brand" href="#home"><img src="img/logo-white.png" alt="Max Paving" width="1587" height="832"><span>Manage</span></a>
     <nav class="side__nav" id="nav" aria-label="Sections"></nav>
-    <div class="side__foot">Data is saved in this browser.<br><a href="#settings">Back it up in Settings</a></div>
+    <div class="side__foot"><a href="https://maxpavingkc.com" target="_blank" rel="noopener">maxpavingkc.com ↗</a></div>
   </aside>
   <div class="main">
     <header class="topbar">
       <button class="menu-btn" id="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="side"><span></span><span></span><span></span></button>
       <span class="topbar__title" id="top-title"></span>
-      <span class="topbar__date" id="top-date"></span>
-      <a class="topbar__site" href="https://maxpavingkc.com" target="_blank" rel="noopener">Website ↗</a>
+      <div class="quick">
+        <button type="button" class="btn btn--yellow btn--sm quick__btn" data-act="quick-add" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
+        <div class="quick__pop" hidden></div>
+      </div>
+      <div class="topbar__user" id="top-user"></div>
     </header>
     <div id="banner"></div>
     <main class="view" id="view"></main>
   </div>
 </div>
+<div class="auth-wrap" id="auth" hidden></div>
 <div class="scrim" id="scrim"></div>
 <div class="drawer" id="drawer" hidden>
   <div class="drawer__backdrop" data-act="close"></div>
@@ -39,6 +43,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="print" id="print"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="app.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
