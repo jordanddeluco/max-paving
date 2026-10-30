@@ -35,7 +35,7 @@
   }
 
   /* Reveal on scroll (children of grids get a stagger index) */
-  document.querySelectorAll(".grid-3, .values, .team, .faq__list, .areas__list, .checklist, .steps").forEach((group) => {
+  document.querySelectorAll(".grid-3, .grid-4, .values, .team, .faq__list, .areas__list, .checklist, .steps, .process, .gallery, .svc-grid").forEach((group) => {
     Array.from(group.children).forEach((el, i) => el.style.setProperty("--i", String(Math.min(i, 8))));
   });
   const reveals = document.querySelectorAll(".reveal");
@@ -184,6 +184,33 @@
         if (e.isIntersecting) heroVideo.play().catch(() => {}); else heroVideo.pause();
       }), { threshold: 0.05 }).observe(hero);
     }
+  }
+
+  /* Project gallery lightbox (falls back to opening the photo if <dialog> is unsupported) */
+  const shots = document.querySelectorAll("[data-lightbox]");
+  if (shots.length && typeof HTMLDialogElement === "function") {
+    const box = document.createElement("dialog");
+    box.className = "lightbox";
+    box.innerHTML = '<button class="lightbox__close" type="button" aria-label="Close photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><img alt=""><p></p>';
+    document.body.appendChild(box);
+    const img = box.querySelector("img");
+    const cap = box.querySelector("p");
+    box.querySelector(".lightbox__close").addEventListener("click", () => box.close());
+    box.addEventListener("click", (ev) => { if (ev.target === box) box.close(); });
+    box.addEventListener("close", () => { img.removeAttribute("src"); document.body.style.overflow = ""; });
+    shots.forEach((a) =>
+      a.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const thumb = a.querySelector("img");
+        const fig = a.closest("figure");
+        img.src = a.getAttribute("href");
+        img.alt = thumb ? thumb.alt : "";
+        const fc = fig && fig.querySelector("figcaption");
+        cap.textContent = fc ? Array.from(fc.children, (c) => c.textContent.trim()).join(" — ") : "";
+        box.showModal();
+        document.body.style.overflow = "hidden";
+      })
+    );
   }
 
   /* Footer year */
