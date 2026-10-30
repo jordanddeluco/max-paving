@@ -5,13 +5,13 @@ import { act, onSubmit, onChange, hero, tabs, card, btn, linkBtn, table, f, fiel
 import { crewDayLabor, crewDayCost, costLine } from '../calc.js';
 import { resetWeather } from '../weather.js';
 
-const TABS = () => [['company', 'Company & rules'], ['crews', 'Crews & rates'], ['costbook', 'Cost book'], ['assemblies', 'Assemblies'], S.mode === 'server' && can.users() && ['users', 'Users'], ['quickbooks', 'QuickBooks'], ['data', 'Data']];
+const TABS = () => [['company', 'Company & rules'], ['crews', 'Crews & rates'], ['costbook', 'Cost book'], ['assemblies', 'Assemblies'], ['proposals', 'Proposals'], S.mode === 'server' && can.users() && ['users', 'Users'], ['quickbooks', 'QuickBooks'], ['data', 'Data']];
 export default {
   title: 'Settings',
   roles: ['owner', 'office'],
   render(r) {
     const tab = r.parts[0] || 'company';
-    const out = ({ company, crews, costbook, assemblies, users, quickbooks, data }[tab] || company)(r);
+    const out = ({ company, crews, costbook, assemblies, proposals, users, quickbooks, data }[tab] || company)(r);
     return typeof out === 'string' ? { html: out } : out;
   },
 };
@@ -100,7 +100,7 @@ act({
 onSubmit({
   async 'set-costbook'(form) {
     db.settings.costBook = $$('.cb tbody tr', form).map(tr => ({ id: tr.dataset.id, name: $('[name=name]', tr).value.trim(), unit: $('[name=unit]', tr).value, cost: num($('[name=cost]', tr).value), type: $('[name=type]', tr).value, cat: $('[name=cat]', tr).value })).filter(c => c.name);
-    db.settings.sampleRates = false;
+    db.settings.sampleRates = false; db.settings.costBookUpdated = today();
     await saveSettings(); ui.rerender(); toast('Cost book saved.');
   },
 });
@@ -114,6 +114,12 @@ function assemblies() {
     <form data-submit="set-estdefaults">${card('Estimating defaults', `<div class="fields fields--4">
       ${sField('overheadPct', 'Overhead (%)')}${sField('marginPct', 'Target margin (%)')}${sField('hmaLbPerSyIn', 'Hot-mix lb per SY-inch', 'number', { help: '110 is the common rule; use your mix design.' })}${sField('baseDensity', 'Base rock lb/ft³ (compacted)')}
       ${sField('wastePct', 'Asphalt & base waste (%)')}${sField('concreteWastePct', 'Concrete waste (%)')}${sField('truckTons', 'Tons per truck')}${sField('loadMin', 'Load + dump time (min)')}${sField('haulMin', 'Default haul (min one way)')}
+    </div>
+    <h3 class="sub-h">Guardrails</h3>
+    <div class="fields fields--4">
+      ${sField('marginWarnPct', 'Warn below margin (%)')}${sField('marginFloorPct', 'Owner approval below margin (%)')}${sField('minJobCharge', 'Minimum job charge ($)')}${sField('addMobPrice', 'Each extra mobilization ($, on proposals)')}
+      ${sField('depositResidentialPct', 'Residential deposit (%)')}${sField('retainagePct', 'GC retainage (%)')}${sField('escalationTriggerPct', 'Asphalt escalation trigger (±%)')}${sField('stripeWaitDays', 'Days to wait before striping new asphalt')}
+      ${sField('escalationIndex', 'Asphalt price index named on proposals', 'text', { wide: true })}${sField('mo811Days', 'Missouri 811 notice (working days)', 'number', { help: 'RSMo 319.026 (8/28/2025): at least 2, at most 10.' })}
     </div><div class="btn-row">${saveBtn('set-save-defaults')}</div>`, { eyebrow: 'Used by every estimate' })}</form>
     <div class="toolbar"><span></span>${btn('New assembly', 'as-new', { ic: 'plus' })}</div>
     ${table([
@@ -124,7 +130,37 @@ function assemblies() {
     ], s.assemblies, { onRow: a => `data-act="as-edit" data-id="${a.id}"` })}`);
 }
 act({ 'set-save-defaults'(el) { el.closest('form').requestSubmit(); } });
-onSubmit({ async 'set-estdefaults'(form) { readInto(form, ['overheadPct', 'marginPct', 'hmaLbPerSyIn', 'baseDensity', 'wastePct', 'concreteWastePct', 'truckTons', 'loadMin', 'haulMin']); await saveSettings(); ui.rerender(); toast('Estimating defaults saved.'); } });
+onSubmit({ async 'set-estdefaults'(form) { readInto(form, ['overheadPct', 'marginPct', 'hmaLbPerSyIn', 'baseDensity', 'wastePct', 'concreteWastePct', 'truckTons', 'loadMin', 'haulMin', 'marginWarnPct', 'marginFloorPct', 'minJobCharge', 'addMobPrice', 'depositResidentialPct', 'retainagePct', 'escalationTriggerPct', 'stripeWaitDays', 'escalationIndex', 'mo811Days']); await saveSettings(); ui.rerender(); toast('Estimating defaults saved.'); } });
+
+/* ---------------------------------------------------------------- proposals: checklist + language library */
+function proposals() {
+  const s = db.settings;
+  const chk = c => `<tr><td><input name="ck_label" value="${esc(c.label)}" aria-label="Checklist item"></td><td><select name="ck_cat" aria-label="Applies to">${['All', ...CATS.filter(x => x !== 'General')].map(x => `<option${x === c.cat ? ' selected' : ''}>${x}</option>`).join('')}</select></td><td><select name="ck_item" aria-label="Cost item to add"><option value="">—</option>${s.costBook.map(i => `<option value="${i.id}"${i.id === c.item ? ' selected' : ''}>${esc(i.name)}</option>`).join('')}</select></td><td><input type="hidden" name="ck_key" value="${esc(c.key)}"><button type="button" class="x" data-act="row-del" aria-label="Remove">×</button></td></tr>`;
+  const lib = x => `<tr><td><select name="lb_kind" aria-label="Kind"><option value="exclusion"${x.kind === 'exclusion' ? ' selected' : ''}>Not included</option><option value="clarification"${x.kind === 'clarification' ? ' selected' : ''}>Clarification</option></select></td><td><input name="lb_text" value="${esc(x.text)}" aria-label="Text"></td><td><input type="hidden" name="lb_id" value="${esc(x.id)}"><button type="button" class="x" data-act="row-del" aria-label="Remove">×</button></td></tr>`;
+  return page('proposals', 'The “did you address it?” checklist every estimate answers, and the exclusions & clarifications you pick from on proposals.', `
+    <form data-submit="set-proposals">
+      ${card('Estimate checklist', `<div class="lines__scroll"><table class="lines__table ck"><thead><tr><th>Item</th><th>Applies to</th><th>“Included” adds</th><th></th></tr></thead><tbody>${(s.checks || []).map(chk).join('')}</tbody></table></div>${btn('Add item', 'ck-add', { kind: 'ghost', size: 'sm', ic: 'plus' })}`, { eyebrow: 'Answered Included / Excluded / N/A before sending' })}
+      ${card('Exclusions & clarifications', `<div class="lines__scroll"><table class="lines__table lb"><thead><tr><th>Kind</th><th>Text (tokens: {mobs}, {mobPrice})</th><th></th></tr></thead><tbody>${(s.scopeLib || []).map(lib).join('')}</tbody></table></div>${btn('Add line', 'lb-add', { kind: 'ghost', size: 'sm', ic: 'plus' })}`, { eyebrow: 'Proposal language' })}
+      ${card('Job-type templates', `<ul class="roles">${(s.templates || []).map(t => `<li><b>${esc(t.name)}</b> — areas: ${esc(t.areas.map(a => a[0]).join(', '))}; ${t.lines.length} lines</li>`).join('')}</ul><p class="muted small">Templates come with the panel. Tell us if you want one changed or added.</p>`, { eyebrow: 'New estimate → job type' })}
+      <div class="btn-row">${saveBtn('set-save-proposals')}</div>
+    </form>`);
+}
+act({
+  'set-save-proposals'(el) { el.closest('form').requestSubmit(); },
+  'row-del'(el) { el.closest('tr').remove(); },
+  'ck-add'() { const tb = $('.ck tbody'); tb.insertAdjacentHTML('beforeend', tb.lastElementChild ? tb.lastElementChild.outerHTML.replace(/value="[^"]*"/g, 'value=""').replace(/ selected/g, '') : ''); const r = tb.lastElementChild; $('[name=ck_key]', r).value = uid(); $('[name=ck_label]', r).focus(); },
+  'lb-add'() { const tb = $('.lb tbody'); tb.insertAdjacentHTML('beforeend', tb.lastElementChild ? tb.lastElementChild.outerHTML.replace(/value="[^"]*"/g, 'value=""').replace(/ selected/g, '') : ''); const r = tb.lastElementChild; $('[name=lb_id]', r).value = uid(); $('[name=lb_kind]', r).value = 'exclusion'; $('[name=lb_text]', r).focus(); },
+});
+onSubmit({
+  async 'set-proposals'(form) {
+    const col = n => $$(`[name=${n}]`, form).map(x => x.value.trim());
+    const L = col('ck_label'), C = col('ck_cat'), I = col('ck_item'), K = col('ck_key');
+    db.settings.checks = L.map((label, i) => ({ key: K[i] || uid(), label, cat: C[i], item: I[i] })).filter(c => c.label);
+    const LK = col('lb_kind'), LT = col('lb_text'), LI = col('lb_id');
+    db.settings.scopeLib = LT.map((text, i) => ({ id: LI[i] || uid(), kind: LK[i], text })).filter(x => x.text);
+    await saveSettings(); ui.rerender(); toast('Proposal settings saved.');
+  },
+});
 function partsEditor(parts) {
   const row = p => `<div class="part-row"><select name="p_item" aria-label="Cost item">${db.settings.costBook.map(c => `<option value="${c.id}"${c.id === p.item ? ' selected' : ''}>${esc(c.name)} (${c.unit})</option>`).join('')}</select>
     <select name="p_rule" aria-label="How the quantity is figured">${RULES.map(([v, l]) => `<option value="${v}"${v === p.rule ? ' selected' : ''}>${l}</option>`).join('')}</select>

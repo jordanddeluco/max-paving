@@ -5,6 +5,7 @@
 import { uid, num, today, addDays, monday } from './core.js';
 import { defaultSettings, sampleData, sampleProspects } from './seed.js';
 import { budgetFrom, priceEstimate } from './calc.js';
+import { ensurePhases, syncSummary } from './jobflow.js';
 
 export const COLLECTIONS = ['customers', 'leads', 'prospects', 'estimates', 'jobs', 'logs', 'time', 'invoices', 'staff', 'equipment', 'docs'];
 const KEY = 'maxpaving.manage.v2', OLD_KEY = 'maxpaving.manage.v1';
@@ -35,7 +36,18 @@ function normalize(o) {
   if (!Array.isArray(o.settings.crews) || typeof o.settings.crews[0] === 'string') o.settings.crews = def.crews;
   if (!Array.isArray(o.settings.costBook)) o.settings.costBook = def.costBook;
   if (!Array.isArray(o.settings.assemblies)) o.settings.assemblies = def.assemblies;
+  // Newer defaults that older saved settings don't have yet.
+  def.costBook.forEach(c => { if (!o.settings.costBook.some(x => x.id === c.id)) o.settings.costBook.push(c); });
+  o.settings.assemblies.forEach(a => { if (a.scope === undefined) a.scope = (def.assemblies.find(x => x.id === a.id) || {}).scope || ''; });
   delete o.settings.priceBook;
+  o.jobs.forEach(j => {
+    ensurePhases(j);
+    ['site', 'locate', 'permit', 'closeout'].forEach(k => { j[k] = j[k] || {}; });
+    j.changes = j.changes || []; j.punch = j.punch || [];
+    if (['Scheduled', 'In progress', 'Punch list'].includes(j.status)) j.status = 'Active';
+    syncSummary(j);
+  });
+  o.estimates.forEach(e => { e.areas = e.areas || []; e.rev = e.rev || 'A'; e.checks = e.checks || {}; });
   o.meta = o.meta || {};
   return o;
 }
@@ -72,7 +84,7 @@ function finishJobs(o) {
 function loadLocal() {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return normalize(JSON.parse(raw));
+    if (raw) { const o = normalize(JSON.parse(raw)); o.jobs.forEach(j => { delete j._migrated; }); return o; }
     const old = localStorage.getItem(OLD_KEY);
     if (old) { const o = fromV1(JSON.parse(old)); finishJobs(o); return o; }
   } catch (e) { /* storage blocked or corrupt: start fresh */ }
@@ -120,6 +132,10 @@ export async function loadServer() {
   const d = await api('data');
   S.seq = d.seq;
   db = normalize(d);
+  // Jobs from before phases existed get their phase saved once, by someone allowed to edit jobs.
+  const migrated = db.jobs.filter(j => j._migrated);
+  migrated.forEach(j => { delete j._migrated; });
+  if (migrated.length && can.write('jobs')) for (const j of migrated) await put('jobs', j).catch(() => {});
   startPolling();
 }
 export async function login(email, password) { S.user = (await api('login', { method: 'POST', body: { email, password } })).user; await loadServer(); }

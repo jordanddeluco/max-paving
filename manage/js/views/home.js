@@ -2,7 +2,8 @@
 import { esc, money, today, fmtDate, greeting, icon, badge, num, LEAD_STAGES } from '../core.js';
 import { db, S, role } from '../store.js';
 import { hero, card, kpi, btn, linkBtn, custName, bar } from '../ui.js';
-import { attention, invBalance, invStatus, onDay, crewMembers, isClockedIn, jobInvoiced, estTotals } from '../derive.js';
+import { attention, invBalance, invStatus, phaseToday, crewMembers, isClockedIn, jobInvoiced, estTotals } from '../derive.js';
+import { contract, isOpenJob } from '../jobflow.js';
 import { weatherStrip, wxFor, wxGo } from '../weather.js';
 import { myDay } from './crew.js';
 
@@ -21,8 +22,8 @@ function office() {
   const decided = db.estimates.filter(e => ['Accepted', 'Declined'].includes(e.status) && (e.date || '').startsWith(year));
   const won = decided.filter(e => e.status === 'Accepted');
   const wonValue = won.reduce((s, e) => s + estTotals(e).contract.price, 0);
-  const open = db.jobs.filter(j => !['Complete', 'On hold'].includes(j.status));
-  const backlog = open.reduce((s, j) => s + Math.max(0, num(j.value) - jobInvoiced(j)), 0);
+  const open = db.jobs.filter(isOpenJob);
+  const backlog = open.reduce((s, j) => s + Math.max(0, contract(j) - jobInvoiced(j)), 0);
   const ar = db.invoices.reduce((s, i) => s + Math.max(0, invBalance(i)), 0);
   const overdue = db.invoices.filter(i => invStatus(i) === 'Overdue').reduce((s, i) => s + invBalance(i), 0);
   const items = attention();
@@ -30,13 +31,14 @@ function office() {
   const maxStage = Math.max(1, ...stages.map(x => x[1]));
 
   const crews = db.settings.crews.map(c => {
-    const jobs = db.jobs.filter(j => j.crewId === c.id && onDay(j, t) && !['Complete', 'On hold'].includes(j.status));
-    const people = crewMembers(c.id), inNow = people.filter(p => isClockedIn(p.id)).length;
-    const j = jobs[0], go = j ? wxGo(wxFor(t), j.type) : null;
+    const today_ = phaseToday(c.id, t), j = today_ && today_.j, p = today_ && today_.p;
+    const people = crewMembers(c.id), inNow = people.filter(x => isClockedIn(x.id)).length;
+    const go = p ? wxGo(wxFor(t), /concrete|curb/i.test(p.type) ? 'Concrete' : /asphalt|patch|mill/i.test(p.type) ? 'Asphalt' : '') : null;
+    const order = p && p.order;
     return `<a class="crew-card" style="--c:${c.color}" href="${j ? `#jobs/${j.id}` : '#schedule'}">
       <div class="crew-card__head"><span class="crew-card__name">${esc(c.name)}</span><span class="crew-card__count${inNow ? ' is-on' : ''}">${inNow}/${people.length || c.size} clocked in</span></div>
-      ${j ? `<strong class="crew-card__job">${esc(j.name)}</strong><small>${esc(custName(j.customerId))}${j.address ? ' · ' + esc(j.address) : ''}</small>
-        <div class="crew-card__foot">${badge(j.status)}${go ? `<span class="small muted">Weather</span> ${badge(go)}` : ''}${jobs.length > 1 ? `<span class="small muted">+${jobs.length - 1} more</span>` : ''}</div>`
+      ${j ? `<strong class="crew-card__job">${esc(j.name)}</strong><small>${esc(p.name)} · ${esc(custName(j.customerId))}</small>
+        <div class="crew-card__foot">${go ? `<span class="small muted">Weather</span> ${badge(go)}` : ''}${order ? `<span class="small muted">Material</span> ${badge(order.status === 'Confirmed' || order.status === 'Delivered' ? 'Go' : 'Watch', order.status)}` : ''}</div>`
         : `<strong class="crew-card__job muted">Not scheduled today</strong><small>Open the schedule to place sold work</small>`}
     </a>`;
   }).join('');

@@ -2,7 +2,8 @@
 import { $, $$, esc, num, round, money, fix, today, addDays, monday, fmtDate, shortDate, weekday, fmtTime, hoursBetween, fmtHours, greeting, icon, badge, initials, uid, COST_CODES, CERTS, UNITS, daysUntil } from '../core.js';
 import { db, S, put, del, find, can, role, myStaffId, api } from '../store.js';
 import { act, onSubmit, onChange, hero, tabs, card, btn, linkBtn, table, f, fieldHtml, formDrawer, openDrawer, closeDrawer, collect, validate, toast, confirmTwice, crewOf, crewName, crewDot, custName, jobLabel, staffName, empty, stats, ui, printHtml, download, csv, expStatus } from '../ui.js';
-import { onDay, crewMembers, isClockedIn, certAlerts, hasExpiredDriving } from '../derive.js';
+import { onDay, phaseToday, crewMembers, isClockedIn, certAlerts, hasExpiredDriving } from '../derive.js';
+import { phaseOn, syncSummary, applyLog } from '../jobflow.js';
 import { weekSummary } from '../calc.js';
 import { WX, wxFor, wxGo, loadWeather } from '../weather.js';
 import { estTotals } from '../derive.js';
@@ -26,8 +27,10 @@ export default {
 const page = (tab, h, body) => h + tabs(TABS(), tab, 'crew') + `<div class="page">${body}</div>`;
 
 /* ---------------------------------------------------------------- clock helpers */
-const defaultCode = job => job ? ({ Asphalt: 'Asphalt paving', Concrete: 'Concrete flatwork', Excavation: 'Excavation & grading' }[job.type] || 'Asphalt paving') : 'Shop / yard';
-const todaysJob = crewId => db.jobs.find(j => j.crewId === crewId && onDay(j, today()) && !['Complete', 'On hold'].includes(j.status));
+// The job a crew is on today comes from its scheduled phase; the phase type sets the default cost code.
+const PHASE_CODE = { 'Asphalt paving': 'Asphalt paving', Milling: 'Milling', Patching: 'Patching', 'Concrete flatwork': 'Concrete flatwork', 'Curb & gutter': 'Curb & gutter', 'Excavation & grading': 'Excavation & grading', Base: 'Base & compaction' };
+const defaultCode = job => { if (!job) return 'Shop / yard'; const p = (job.phases || []).find(x => x.status !== 'Done' && phaseOn(x, today())); return (p && PHASE_CODE[p.type]) || ({ Asphalt: 'Asphalt paving', Concrete: 'Concrete flatwork', Excavation: 'Excavation & grading' }[job.type] || 'Asphalt paving'); };
+const todaysJob = crewId => (phaseToday(crewId) || {}).j;
 const hoursOf = t => Math.max(0, hoursBetween(t.start, t.end || new Date().toISOString()) - num(t.breakMin) / 60);
 const nowIso = () => new Date().toISOString();
 const atTime = (date, hhmm) => { const [h, m] = String(hhmm || '00:00').split(':').map(Number); const d = new Date(date + 'T00:00:00'); d.setHours(h || 0, m || 0, 0, 0); return d.toISOString(); };
@@ -328,9 +331,10 @@ export function openLog(id, preset = {}) {
   const g = id ? find('logs', id) : (() => {
     const crewId = preset.crewId || (me && me.crewId) || '';
     const job = preset.jobId ? find('jobs', preset.jobId) : crewId && todaysJob(crewId);
-    return { date: today(), jobId: job ? job.id : '', crewId: job ? job.crewId : crewId, foremanId: me ? me.id : '', equipment: [], ...preset };
+    return { date: today(), jobId: job ? job.id : '', crewId: crewId || (job ? job.crewId : ''), foremanId: me ? me.id : '', equipment: [], ...preset };
   })();
   const job = find('jobs', g.jobId);
+  if (!id && job && !g.phaseId) { const ph = (job.phases || []).filter(p => p.status !== 'Done'); g.phaseId = (ph.find(p => p.crewId === g.crewId && phaseOn(p, g.date)) || ph.find(p => phaseOn(p, g.date)) || ph[0] || {}).id || ''; }
   const w = !id && g.date === today() && wxFor(today());
   if (!id && w) g.weather = `${w.short || ''}, ${w.high ?? w.low}°F`;
   const clockH = (jobId, date) => db.time.filter(t => t.jobId === jobId && t.date === date).reduce((s, t) => s + (t.end ? num(t.hours) : hoursOf(t)), 0);
@@ -340,6 +344,7 @@ export function openLog(id, preset = {}) {
   const eqHtml = () => eq.length ? `<div class="eq-hours">${eq.map(q => { const used = (g.equipment || []).find(x => x.id === q.id); return `<label><input type="checkbox" name="eq_${q.id}"${used ? ' checked' : ''}> ${esc(q.unit)} ${esc(q.name)}<input type="number" step="0.5" min="0" name="eqh_${q.id}" value="${used ? esc(used.hours) : ''}" placeholder="hrs" aria-label="Hours for ${esc(q.name)}"></label>`; }).join('')}</div>` : '<p class="muted small">No equipment assigned to this crew.</p>';
   const fields = [
     f('date', 'Date', 'date', { req: true }), f('jobId', 'Job', 'select', { o: () => db.jobs.filter(j => j.status !== 'Complete' || j.id === g.jobId).map(j => [j.id, jobLabel(j)]), req: true }),
+    f('phaseId', 'Phase', 'select', { o: () => (job ? job.phases || [] : []).filter(p => p.status !== 'Done' || p.id === g.phaseId).map(p => [p.id, p.name]), blank: 'Whole job' }),
     f('crewId', 'Crew', 'select', { o: () => db.settings.crews.map(c => [c.id, c.name]) }), f('foremanId', 'Foreman', 'select', { o: () => db.staff.map(s => [s.id, s.name]) }),
     f('weather', 'Weather', 'text', { help: WX.days ? 'Filled from the forecast — fix it if it was different on site.' : '' }),
     f('crewCount', 'Crew on site', 'number'), f('manHours', 'Man-hours', 'number', { help: g.jobId ? `Time clock shows ${fix(clockH(g.jobId, g.date), 1)} h for this job today.` : '' }),
@@ -347,8 +352,10 @@ export function openLog(id, preset = {}) {
     f('concreteCY', 'Concrete placed (CY)', 'number', { help: job && job.budget ? `Estimate: ${fix(job.budget.cy, 1)} CY total` : '' }), f('truckHours', 'Truck hours', 'number'),
     f('qtyDone', 'Quantity completed', 'number'), f('qtyUnit', 'Unit', 'select', { o: UNITS }), f('qtyDesc', 'What was completed', 'text', { wide: true, ph: 'e.g. Paved north half, 2" surface' }),
     f('pct', 'Job % complete after today', 'number', { help: job ? `Was ${num(job.pct)}%` : '' }),
+    f('phaseDone', 'This phase is finished', 'check', { help: 'Moves the job toward punch list & walkthrough.' }),
     f('equipment', 'Equipment used (hours)', 'html', { wide: true, html: eqHtml }),
     ...YESNO.map(([k, l]) => f(k, l, 'check', { wide: true })),
+    f('extraDesc', 'Extra work the customer asked for', 'text', { wide: true, ph: 'What, where, rough quantity', help: 'Creates a change order for the office to price. Don’t do the work until it’s approved in writing.' }),
     f('notes', 'Notes — delays, issues, extra work details', 'textarea', { wide: true }),
     f('signedBy', 'Foreman signature (type your name)', 'text', { wide: true, help: 'Signing submits the report.' }),
   ];
@@ -372,12 +379,14 @@ onSubmit({
       const before = ((prev && prev.equipment) || []).find(x => x.id === u.id), delta = num(u.hours) - num(before && before.hours);
       const q = find('equipment', u.id); if (q && delta && can.write('equipment')) await put('equipment', { ...q, hours: round(num(q.hours) + delta, 1) });
     }
-    await put('logs', rec);
-    // In server mode the server moves the job's % complete from the report; locally we do it here.
+    if (v.extraWork && !v.extraDesc) return toast('Describe the extra work so the office can price it.', 'bad');
+    // The report moves the job: % complete, phase finished, extra work → change order.
+    // In server mode the server applies it (foremen can't edit jobs); locally we do it here.
     const job = find('jobs', rec.jobId);
-    if (S.mode === 'local' && job && v.pct !== '' && num(v.pct) !== num(job.pct)) await put('jobs', { ...job, pct: Math.max(0, Math.min(100, num(v.pct))), status: job.status === 'Scheduled' ? 'In progress' : job.status });
+    if (S.mode === 'local' && job) { const j = JSON.parse(JSON.stringify(job)); if (applyLog(j, rec)) await put('jobs', syncSummary(j)); }
+    await put('logs', rec);
     if (S.mode === 'server') await import('../store.js').then(m => m.pull());
-    closeDrawer(); ui.rerender(); toast(rec.signedBy ? 'Report signed and saved.' : 'Report saved — sign it when the day is done.');
+    closeDrawer(); ui.rerender(); toast(`${rec.signedBy ? 'Report signed and saved.' : 'Report saved — sign it when the day is done.'}${rec.extraWork && !(prev && prev.extraWork) ? ' Change order sent to the office.' : ''}`);
   },
 });
 // Picking a job on a new report reloads it with that job's crew, equipment and clocked hours.

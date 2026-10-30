@@ -16,13 +16,33 @@ export function truckHours(tons, s, haulMin) {
   return loads * (2 * num(haulMin ?? s.haulMin) + num(s.loadMin)) / 60;
 }
 
+export function lineUnit(line, s) {
+  if (line.kind === 'assembly') return (s.assemblies.find(x => x.id === line.assemblyId) || {}).unit || 'EA';
+  if (line.kind === 'item') return (s.costBook.find(c => c.id === line.itemId) || {}).unit || 'EA';
+  return line.unit || 'EA';
+}
+/** A measured area's quantity in a given unit. Areas carry sf (net of cut-outs), lf (perimeter or length), tieIn (LF against existing pavement) and ea (count). */
+export function areaQty(area, unit, depthIn = 0, measure = '') {
+  const sf = num(area.sf), lf = measure === 'tieIn' ? num(area.tieIn) : num(area.lf);
+  return unit === 'SF' ? sf : unit === 'SY' ? sf / 9 : unit === 'LF' ? lf : unit === 'CY' ? sf * num(depthIn) / 12 / 27 : unit === 'TON' ? 0 : num(area.ea) || 1;
+}
+/** Line quantity: typed, or taken from a measured area (plus an optional extra % for overbreak/waste). */
+export function resolveQty(line, s, est = {}) {
+  if (!line.areaId) return num(line.qty);
+  const area = (est.areas || []).find(a => a.id === line.areaId);
+  if (!area) return num(line.qty);
+  const unit = lineUnit(line, s);
+  const q = areaQty(area, unit, line.depth, line.measure);
+  return round(q * (1 + num(line.extraPct) / 100), unit === 'EA' || unit === 'LS' ? 0 : 1);
+}
+
 /**
  * Cost one estimate line.
- * line: { kind: 'assembly'|'item'|'custom', assemblyId?, itemId?, qty, thick?, unitCost?, unit?, desc?, priceEach? }
+ * line: { kind: 'assembly'|'item'|'custom', assemblyId?, itemId?, qty | areaId, thick?, unitCost?, unit?, desc?, priceEach? }
  * Returns { desc, cat, unit, qty, cost: {type: $}, total, days, manHours, tons: {hma, base, other}, cy, parts: [...] }
  */
 export function costLine(line, s, est = {}) {
-  const q = num(line.qty), cost = zero(), parts = [];
+  const q = resolveQty(line, s, est), cost = zero(), parts = [];
   const out = { desc: line.desc || '', cat: 'General', unit: line.unit || 'EA', qty: q, cost, total: 0, days: 0, manHours: 0, hmaTons: 0, baseTons: 0, cy: 0, truckHrs: 0, parts };
   const item = id => s.costBook.find(c => c.id === id);
 
@@ -79,10 +99,11 @@ export function priceEstimate(est, s) {
   const oh = num(est.overheadPct ?? s.overheadPct) / 100;
   const margin = Math.min(0.9, num(est.marginPct ?? s.marginPct) / 100);
   const sections = (est.sections && est.sections.length ? est.sections : [{ id: 'base', name: 'Base scope', type: 'base' }]);
+  const lock = est.locked && est.locked.lines; // a sent proposal keeps the numbers the customer saw
   const lines = (est.lines || []).map(l => {
-    const c = costLine(l, s, est);
+    const c = lock && lock[l.id] ? { ...costLine(l, s, est), ...lock[l.id].c } : costLine(l, s, est);
     const auto = c.qty ? c.total * (1 + oh) / (1 - margin) / c.qty : 0; // unit sell price
-    const unitPrice = l.priceEach !== undefined && l.priceEach !== '' ? num(l.priceEach) : auto;
+    const unitPrice = lock && lock[l.id] ? lock[l.id].unitPrice : l.priceEach !== undefined && l.priceEach !== '' ? num(l.priceEach) : auto;
     return { ...c, line: l, section: sections.some(x => x.id === l.section) ? l.section : sections[0].id, unitPrice, price: unitPrice * c.qty, overridden: l.priceEach !== undefined && l.priceEach !== '' };
   });
   const bySection = sections.map(sec => {
@@ -104,6 +125,13 @@ export function priceEstimate(est, s) {
     headline: { cost: sum(headline, 'cost'), price: sum(headline, 'price') }, // what the list shows ("from" price if options)
     hasOptions: options.length > 0,
   };
+}
+
+/** Freeze every line's quantity, cost and unit price (called when a proposal is sent). */
+export function lockPrices(est, s) {
+  const p = priceEstimate({ ...est, locked: null }, s), lines = {};
+  p.lines.forEach(r => { lines[r.line.id] = { unitPrice: r.unitPrice, c: { qty: r.qty, total: r.total, cost: r.cost, days: r.days, manHours: r.manHours, hmaTons: r.hmaTons, baseTons: r.baseTons, cy: r.cy, truckHrs: r.truckHrs, desc: r.desc, unit: r.unit, cat: r.cat, parts: r.parts } }; });
+  return { at: new Date().toISOString(), lines, price: p.headline.price };
 }
 
 /** Customer-facing priced lines for QuickBooks / invoices. */

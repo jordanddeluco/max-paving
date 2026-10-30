@@ -20,6 +20,12 @@ const COST_BOOK = [
   ['truck', 'Tandem dump truck', 'HR', 105, 'Trucking', 'General'],
   ['mob', 'Mobilization (equipment move)', 'LS', 950, 'Equipment', 'General'],
   ['traffic', 'Traffic control & signage', 'DAY', 350, 'Other', 'General'],
+  ['stripe', 'Striping (subcontract)', 'LF', 0.45, 'Subcontract', 'Asphalt'],
+  ['stalls', 'Parking stall striping (subcontract)', 'EA', 16, 'Subcontract', 'Asphalt'],
+  ['curb-rm', 'Remove & dispose curb', 'LF', 7.5, 'Other', 'Excavation'],
+  ['undercut', 'Subgrade undercut & replace (unsuitable soil)', 'CY', 65, 'Other', 'Excavation'],
+  ['permit', 'Permit & fees', 'LS', 250, 'Other', 'General'],
+  ['testing', 'Density / compaction testing', 'LS', 600, 'Subcontract', 'General'],
 ].map(([id, name, unit, cost, type, cat]) => ({ id, name, unit, cost, type, cat }));
 
 const CREWS = [
@@ -46,12 +52,95 @@ const ASSEMBLIES = [
   { id: 'x-grade', name: 'Fine grade & proof roll', cat: 'Excavation', unit: 'SY', thick: 0, prod: 4000, crew: 'excavation', parts: [] },
 ];
 
+// Customer-facing sentence per assembly for the proposal's scope narrative. Tokens: {qty} {unit} {area} {thick}
+const SCOPE = {
+  'a-overlay': 'Mill the existing asphalt{area} ({qty} {unit}), haul off the millings, apply tack coat, and pave {thick}" of hot-mix asphalt surface course rolled to density.',
+  'a-newlot': 'Grade and compact the subgrade{area}, install 6" of compacted aggregate base, and pave {thick}" of hot-mix asphalt ({qty} {unit}).',
+  'a-drive': 'Install 4" of compacted aggregate base and pave {thick}" of hot-mix asphalt{area} ({qty} {unit}).',
+  'a-patch': 'Saw cut, remove and dispose of failed asphalt{area} ({qty} {unit}) and replace with {thick}" of compacted hot-mix asphalt.',
+  'c-pave': 'Form and pour {thick}" concrete{area} ({qty} {unit}) on 4" of compacted aggregate base with wire mesh; saw-cut control joints, cure and seal joints.',
+  'c-heavy': 'Form and pour {thick}" heavy-duty concrete{area} ({qty} {unit}) on 6" of compacted base, reinforced for truck traffic, with saw-cut joints and curing.',
+  'c-walk': 'Form and pour {thick}" concrete sidewalk{area} ({qty} {unit}) with control joints and a broom finish.',
+  'c-curb': 'Form and pour 30" concrete curb & gutter{area} ({qty} {unit}).',
+  'c-ramp': 'Build {qty} ADA curb ramp(s) with detectable warning panels.',
+  'x-remove': 'Saw cut, remove and dispose of the existing concrete{area} ({qty} {unit}).',
+  'x-excav': 'Excavate and haul off {qty} {unit} of material{area}.',
+  'x-grade': 'Fine grade and proof roll{area} ({qty} {unit}).',
+};
+
+// "Did you address it?" — each item is answered Included / Excluded / N/A before a proposal is sent.
+const CHECKS = [
+  ['mob', 'Mobilization (number of moves, phases)', 'All', 'mob'],
+  ['traffic', 'Traffic control & lot phasing (one entrance or two?)', 'All', 'traffic'],
+  ['locate', '811 and private utility locates', 'All', ''],
+  ['permit', 'Permits (right-of-way / approach)', 'All', 'permit'],
+  ['testing', 'Density / compaction testing', 'All', 'testing'],
+  ['bond', 'Bonds, prevailing wage, insurance certificates', 'All', ''],
+  ['sawcut', 'Saw cut at tie-ins to existing pavement', 'Asphalt', 'sawcut'],
+  ['baserepair', 'Base repair / undercut allowance', 'Asphalt', 'undercut'],
+  ['drainage', 'Grading & drainage (slopes under 1–2%)', 'Asphalt', ''],
+  ['structures', 'Raise manholes & inlets', 'Asphalt', ''],
+  ['ada', 'ADA stalls, ramps & domes', 'Asphalt', ''],
+  ['striping', 'Restriping & stencils', 'Asphalt', 'stalls'],
+  ['escalation', 'Asphalt price escalation clause', 'Asphalt', ''],
+  ['demo', 'Demo & haul-off of existing', 'Concrete', ''],
+  ['joints', 'Joint layout, sawing & sealing', 'Concrete', 'joint'],
+  ['weather', 'Hot / cold weather protection', 'Concrete', ''],
+  ['pump', 'Pump or buggy access', 'Concrete', ''],
+  ['cylinders', 'Cylinder tests', 'Concrete', ''],
+  ['barricades', 'Barricades during cure', 'Concrete', ''],
+  ['undercut', 'Unsuitable soil undercut', 'Excavation', 'undercut'],
+  ['swell', 'Import / export with swell, dump fees', 'Excavation', 'dump'],
+  ['erosion', 'Erosion control', 'Excavation', ''],
+  ['rock', 'Rock clause', 'Excavation', ''],
+].map(([key, label, cat, item]) => ({ key, label, cat, item }));
+
+// Proposal language. Picked per estimate; excluded checklist items are added automatically.
+const SCOPE_LIB = [
+  ['x-permits', 'exclusion', 'Permits, fees, bonds and testing unless listed above.'],
+  ['x-subgrade', 'exclusion', 'Undercutting or replacing unsuitable subgrade (soft spots). If we find it, we stop and price it with you before going on.'],
+  ['x-utilities', 'exclusion', 'Damage to private utilities that weren’t located or marked (sprinkler lines, private electric, etc.).'],
+  ['x-structures', 'exclusion', 'Adjusting manholes, valves or inlets unless listed above.'],
+  ['x-striping', 'exclusion', 'Striping and stencils unless listed above.'],
+  ['x-drainage', 'exclusion', 'Standing water where existing slopes are under 1–2%; we match existing grades unless regrading is listed.'],
+  ['x-ada', 'exclusion', 'ADA compliance of existing site elements stays with the owner unless listed above.'],
+  ['x-landscape', 'exclusion', 'Landscaping, sod and irrigation repair beyond 12" of the work.'],
+  ['x-tax', 'exclusion', 'Sales tax, where it applies.'],
+  ['c-access', 'clarification', 'Price assumes full access to the work area during normal hours (Mon–Fri) and that vehicles are moved before we arrive.'],
+  ['c-measure', 'clarification', 'Quantities come from aerial measurement and the site visit; unit-priced items are billed by the actual quantity placed.'],
+  ['c-mob', 'clarification', 'Includes {mobs} mobilization(s). Each additional move requested by the owner is {mobPrice}.'],
+  ['c-base', 'clarification', 'We aren’t responsible for pavement failures caused by base or subgrade prepared by others.'],
+  ['c-weather', 'clarification', 'Paving is weather-dependent; we reschedule rather than pave in conditions that hurt quality.'],
+].map(([id, kind, text]) => ({ id, kind, text }));
+
+// Job-type templates: areas to measure + the lines they drive. line: [assembly | 'i:item', areaIndex, qty, extra]
+const TEMPLATES = [
+  { id: 't-overlay', name: 'Commercial mill & overlay', cat: 'Asphalt', areas: [['Paving area', 'area'], ['Parking stalls', 'count']],
+    lines: [['a-overlay', 0], ['i:sawcut', 0, 0, { measure: 'tieIn' }], ['i:mob', null, 1], ['i:traffic', null, 1], ['i:stalls', 1, 0, { section: 'Restripe the lot' }]] },
+  { id: 't-patch', name: 'Patch & base repair', cat: 'Asphalt', areas: [['Patch areas', 'area']], lines: [['a-patch', 0], ['i:mob', null, 1]] },
+  { id: 't-newlot', name: 'New asphalt lot or drive', cat: 'Asphalt', areas: [['Paving area', 'area']], lines: [['x-grade', 0], ['a-newlot', 0], ['i:sawcut', 0, 0, { measure: 'tieIn' }], ['i:mob', null, 1], ['i:testing', null, 1]] },
+  { id: 't-resdrive', name: 'Residential driveway, remove & replace', cat: 'Concrete', residential: true, areas: [['Driveway', 'area']],
+    lines: [['x-remove', 0], ['c-pave', 0], ['i:sawcut', 0, 0, { measure: 'tieIn' }], ['i:mob', null, 1]] },
+  { id: 't-concrete', name: 'Concrete flatwork, curb & ADA', cat: 'Concrete', areas: [['Flatwork', 'area'], ['Curb run', 'linear'], ['Ramps', 'count']],
+    lines: [['x-remove', 0], ['c-pave', 0], ['c-curb', 1], ['c-ramp', 2], ['i:mob', null, 1]] },
+  { id: 't-pad', name: 'Dumpster pad / truck apron', cat: 'Concrete', areas: [['Pad', 'area']], lines: [['x-excav', 0, 0, { depth: 10 }], ['c-heavy', 0], ['i:mob', null, 1]] },
+  { id: 't-excav', name: 'Excavation, base & grading', cat: 'Excavation', areas: [['Site', 'area']], lines: [['x-excav', 0, 0, { depth: 12, extraPct: 25 }], ['x-grade', 0], ['i:mob', null, 1]] },
+];
+
 export function defaultSettings() {
   return {
     company: { name: 'Max Paving', phone: '(816) 220-7777', email: 'maxpavingkc@gmail.com', address: '29803 SW Eagles Pkwy, Grain Valley, MO 64029', website: 'maxpavingkc.com' },
     crews: CREWS.map(c => ({ ...c })),
     costBook: COST_BOOK.map(c => ({ ...c })),
-    assemblies: ASSEMBLIES.map(a => ({ ...a, parts: a.parts.map(p => ({ ...p })) })),
+    assemblies: ASSEMBLIES.map(a => ({ ...a, scope: SCOPE[a.id] || '', parts: a.parts.map(p => ({ ...p })) })),
+    templates: JSON.parse(JSON.stringify(TEMPLATES)),
+    checks: CHECKS.map(c => ({ ...c })),
+    scopeLib: SCOPE_LIB.map(c => ({ ...c })),
+    marginWarnPct: 20, marginFloorPct: 15, minJobCharge: 2500, addMobPrice: 1250,
+    depositResidentialPct: 50, retainagePct: 10,
+    escalationDays: 30, escalationIndex: 'MoDOT Asphalt Price Index', escalationTriggerPct: 5,
+    stripeWaitDays: 14, mo811Days: 2,
+    costBookUpdated: '',
     estimators: ['Wendell Gourley', 'Daniel Cushman', 'Gary Stucker'],
     overheadPct: 10, marginPct: 25, burdenPct: 30,
     hmaLbPerSyIn: 110, baseDensity: 140, wastePct: 5, concreteWastePct: 8,
@@ -123,15 +212,40 @@ export function sampleData() {
     { id: 'e5', number: 'E-1005', title: 'Lot repair options', customerId: 'c7', address: 'Kansas City, MO', estimator: 'Daniel Cushman', date: d(-2), status: 'Draft',
       sections: [{ id: 'g', name: 'Good — patch the worst areas', type: 'option' }, { id: 'b', name: 'Better — patch + 2" overlay drive lanes', type: 'option' }, { id: 'x', name: 'Best — mill & overlay entire lot', type: 'option' }],
       lines: [L('a-patch', 1800, { section: 'g' }), L('a-patch', 1800, { section: 'b' }), L('a-overlay', 1600, { section: 'b' }), L('a-overlay', 4200, { section: 'x' })], notes: 'Pick one option. Pricing holds for 30 days.', ...S },
+    // Built the new way: measured areas drive the lines.
+    { id: 'e6', number: 'E-1006', rev: 'A', title: 'Front lot mill & overlay', customerId: 'c2', address: 'Independence, MO', estimator: 'Daniel Cushman', date: t, status: 'Draft', jobType: 't-overlay', haulMin: 25,
+      areas: [{ id: 'ar1', name: 'Front lot', kind: 'area', sf: 21600, lf: 640, tieIn: 120, ea: 0, shapes: [], color: '#fecf0e' }, { id: 'ar2', name: 'Parking stalls', kind: 'count', sf: 0, lf: 0, tieIn: 0, ea: 64, shapes: [], color: '#38bdf8' }],
+      sections: [{ id: 'base', name: 'Base scope', type: 'base' }, { id: 'sx', name: 'Restripe the lot', type: 'addon' }],
+      lines: [L('a-overlay', '', { areaId: 'ar1' }), { id: uid(), kind: 'item', itemId: 'sawcut', areaId: 'ar1', measure: 'tieIn', section: 'base' }, { id: uid(), kind: 'item', itemId: 'mob', qty: 1, section: 'base' }, { id: uid(), kind: 'item', itemId: 'traffic', qty: 1, section: 'base' }, { id: uid(), kind: 'item', itemId: 'stalls', areaId: 'ar2', section: 'sx' }],
+      checks: { mob: 'inc', traffic: 'inc', locate: 'inc', sawcut: 'inc', striping: 'inc' }, site: { surface: 'Existing asphalt', access: 'Two entrances — phase north/south', drainage: 'Low spot by the east drain', condition: 'Alligator cracking along the drive lane' }, ...S },
   ];
 
+  // Sample phase dates land on weekdays so the demo schedule looks like real work.
+  const wkday = s => { if (!s) return s; const x = new Date(s + 'T00:00:00'), dw = x.getDay(); return dw === 6 ? addDays(s, 2) : dw === 0 ? addDays(s, 1) : s; };
+  const PH = (id, type, crewId, start, end, status, extra = {}) => { const s0 = wkday(start), e0 = wkday(end); return { id, type, name: type, crewId, start: s0, end: e0 && e0 < s0 ? s0 : e0, days: 1, qty: '', unit: '', status, notes: '', order: null, ...extra }; };
   const jobs = [
-    { id: 'j1', number: 'J-1001', name: 'Oakview lot mill & overlay', customerId: 'c1', estimateId: 'e1', address: '1200 NW Oakview Dr, Lee\'s Summit, MO', type: 'Asphalt', crewId: 'asphalt', start: d(-1), end: d(2), status: 'In progress', value: 0, completed: '', pct: 40, notes: 'Phase 1 = north half. Plant order confirmed.', ...S },
-    { id: 'j2', number: 'J-1002', name: 'Hillcrest sidewalk & ADA ramp', customerId: 'c3', estimateId: 'e4', address: 'Blue Springs, MO', type: 'Concrete', crewId: 'concrete', start: d(3), end: d(5), status: 'Scheduled', value: 0, completed: '', pct: 0, notes: 'Call 811 locate before dig.', ...S },
-    { id: 'j3', number: 'J-0987', name: 'Summit Builders curb & gutter', customerId: 'c4', estimateId: '', address: 'Olathe, KS', type: 'Concrete', crewId: 'concrete', start: d(-346), end: d(-341), status: 'Complete', value: 28500, completed: d(-340), pct: 100, notes: 'Subcontract under Summit Builders.', ...S },
-    { id: 'j4', number: 'J-0995', name: 'Miller driveway', customerId: 'c5', estimateId: '', address: 'Grain Valley, MO', type: 'Concrete', crewId: 'concrete', start: d(-64), end: d(-61), status: 'Complete', value: 11800, completed: d(-60), pct: 100, notes: '', ...S },
-    { id: 'j5', number: 'J-1003', name: 'Riverside drive lane regrade', customerId: 'c2', estimateId: '', address: 'Independence, MO', type: 'Excavation', crewId: 'excavation', start: d(1), end: d(1), status: 'Scheduled', value: 4200, completed: '', pct: 0, notes: '', ...S },
-    { id: 'j6', number: 'J-1004', name: 'Northland dock apron', customerId: 'c8', estimateId: '', address: 'Riverside, MO', type: 'Concrete', crewId: '', start: '', end: '', status: 'Scheduled', value: 18400, completed: '', pct: 0, notes: 'Approved — needs a date. Phase around receiving hours.', ...S },
+    { id: 'j1', number: 'J-1001', name: 'Oakview lot mill & overlay', customerId: 'c1', estimateId: 'e1', address: '1200 NW Oakview Dr, Lee\'s Summit, MO', type: 'Asphalt', status: 'Active', value: 0, completed: '', pct: 40, notes: 'Phase 1 = north half. Keep the south entrance open.', ...S,
+      site: { contact: 'Dana (property manager)', phone: '(816) 555-0142', gate: '', notes: 'Stage equipment by the dumpster enclosure.' }, locate: { state: 'MO', ticket: '26103012', called: d(-8) }, permit: { needed: 'no' },
+      phases: [
+        PH('p1', 'Milling', 'asphalt', d(-1), d(-1), 'Done', { qty: 2800, unit: 'SY', notifiedOn: d(-6) }),
+        PH('p2', 'Asphalt paving', 'asphalt', t, d(1), 'Planned', { qty: 2800, unit: 'SY', startTime: '06:30', notifiedOn: d(-6), order: { kind: 'asphalt', supplier: 'Sample asphalt plant', product: 'SP-095 surface mix', qty: 323, unit: 'TON', time: '06:30', status: 'Confirmed', confirmation: 'PO 4471' } }),
+        PH('p3', 'Striping', '', '', '', 'Planned', { notes: 'Restripe 96 stalls after the cure.' }),
+      ] },
+    { id: 'j2', number: 'J-1002', name: 'Hillcrest sidewalk & ADA ramp', customerId: 'c3', estimateId: 'e4', address: 'Blue Springs, MO', type: 'Concrete', status: 'Active', value: 0, completed: '', pct: 0, notes: '', ...S,
+      site: { contact: 'Facilities committee', phone: '(816) 555-0118', gate: '', notes: '' }, locate: { state: 'MO', ticket: '', called: '' }, permit: { needed: '' },
+      phases: [
+        PH('p4', 'Excavation & grading', 'excavation', d(3), d(3), 'Planned', { name: 'Remove old walk' }),
+        PH('p5', 'Concrete flatwork', 'concrete', d(4), d(5), 'Planned', { name: 'Pour walk & ramp', startTime: '07:00', order: { kind: 'concrete', supplier: '', product: '4000 psi, 4" slump', qty: 6, unit: 'CY', time: '07:30', status: 'Not ordered' } }),
+      ] },
+    { id: 'j3', number: 'J-0987', name: 'Summit Builders curb & gutter', customerId: 'c4', estimateId: '', address: 'Olathe, KS', type: 'Concrete', crewId: 'concrete', start: d(-346), end: d(-341), status: 'Complete', value: 28500, completed: d(-340), pct: 100, notes: 'Subcontract under Summit Builders.', ...S,
+      closeout: { walkthroughOn: d(-340), walkthroughBy: 'Summit PM', waivers: true, warrantyLetter: true, photos: true, review: true, closedOn: d(-300) } },
+    { id: 'j4', number: 'J-0995', name: 'Miller driveway', customerId: 'c5', estimateId: '', address: 'Grain Valley, MO', type: 'Concrete', crewId: 'concrete', start: d(-64), end: d(-61), status: 'Complete', value: 11800, completed: d(-60), pct: 100, notes: '', ...S,
+      closeout: { walkthroughOn: d(-60), walkthroughBy: 'Homeowner', warrantyLetter: true } },
+    { id: 'j5', number: 'J-1003', name: 'Riverside drive lane regrade', customerId: 'c2', estimateId: '', address: 'Independence, MO', type: 'Excavation', status: 'Active', value: 4200, completed: '', pct: 0, notes: '', ...S,
+      site: { contact: 'Front office', phone: '(816) 555-0177', gate: 'Gate code 4410', notes: '' }, locate: { state: 'MO', ticket: '26102788', called: d(-3) }, permit: { needed: 'no' },
+      phases: [PH('p6', 'Excavation & grading', 'excavation', d(1), d(1), 'Planned', { startTime: '07:00', notifiedOn: d(-2) })] },
+    { id: 'j6', number: 'J-1004', name: 'Northland dock apron', customerId: 'c8', estimateId: '', address: 'Riverside, MO', type: 'Concrete', status: 'Active', value: 18400, completed: '', pct: 0, notes: 'Phase around receiving hours.', ...S,
+      changes: [{ id: 'co1', number: 'CO-1', desc: 'Second dock door apron (customer request)', amount: 6200, cost: 4300, status: 'Pending', requested: d(-1), source: 'office' }] },
   ];
 
   // This week's clock history for the asphalt and excavation crews (yesterday + today).

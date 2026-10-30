@@ -480,12 +480,22 @@ async function api(req, res, url) {
       // Fields only the server sets, or that this role can't see: keep the stored values.
       if (prev) { ['qbo'].forEach(k => { if (prev[k] !== undefined) keep[k] = prev[k]; }); if (!role.money && c === 'staff') { keep.rate = prev.rate; keep.qboEmployeeId = prev.qboEmployeeId; } if (user.role === 'crew' && c === 'jobs') return fail(res, 403, 'Read only.'); }
       if (c === 'time' && rec.status === 'approved' && !(prev && prev.status === 'approved') && !['owner', 'office'].includes(user.role)) return fail(res, 403, 'Only the office can approve time.');
-      const saved = putRecord(c, { ...rec, ...keep }, user);
-      // A daily report's "% complete after today" moves the job forward, even for foremen who can't edit jobs.
-      if (c === 'logs' && rec.pct !== '' && rec.pct != null && store.collections.jobs[rec.jobId]) {
-        const job = store.collections.jobs[rec.jobId], pct = Math.max(0, Math.min(100, Number(rec.pct) || 0));
-        if (pct !== Number(job.pct)) putRecord('jobs', { ...job, pct, status: job.status === 'Scheduled' ? 'In progress' : job.status }, user);
+      // A daily report moves its job forward even for foremen who can't edit jobs:
+      // % complete, "this phase is finished", and extra work → a pending change order. (Same rules as jobflow.applyLog.)
+      if (c === 'logs' && store.collections.jobs[rec.jobId]) {
+        const job = JSON.parse(JSON.stringify(store.collections.jobs[rec.jobId]));
+        let changed = false;
+        if (rec.pct !== '' && rec.pct != null && Number(rec.pct) !== Number(job.pct)) { job.pct = Math.max(0, Math.min(100, Number(rec.pct) || 0)); changed = true; }
+        const ph = rec.phaseDone && rec.phaseId && (job.phases || []).find(x => x.id === rec.phaseId);
+        if (ph && ph.status !== 'Done') { ph.status = 'Done'; if (!ph.start) { ph.start = rec.date; ph.end = rec.date; } changed = true; }
+        if (rec.extraWork && rec.extraDesc && !rec.coId) {
+          const co = { id: crypto.randomUUID(), number: `CO-${(job.changes || []).length + 1}`, desc: String(rec.extraDesc).slice(0, 2000), amount: 0, cost: 0, status: 'Pending', requested: rec.date, source: 'field', logId: rec.id };
+          job.changes = [...(job.changes || []), co]; rec.coId = co.id; changed = true;
+        }
+        if ((job.phases || []).length && job.phases.every(x => x.status === 'Done') && job.status !== 'Complete') { job.status = 'Complete'; job.completed = job.completed || rec.date; job.pct = 100; changed = true; }
+        if (changed) putRecord('jobs', job, user);
       }
+      const saved = putRecord(c, { ...rec, ...keep }, user);
       return json(res, 200, { rec: redact(c, saved, user), seq: store.seq });
     }
     if (m === 'DELETE') {

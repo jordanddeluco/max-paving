@@ -71,24 +71,58 @@ The research behind these choices is summarised at the bottom.
 - Prospects map: Marketing, with the 4-step add flow and contact log.
 - Customers, with history and balances.
 
-**Estimates**
-- Estimates are built from **assemblies**: pick "Mill & overlay", type 2,800 SY and the depth. Hot-mix tons, tack, base, concrete CY, crew days, man-hours and **trucking** are calculated (truck cycle from haul time, load time and tons per truck).
-- Costs are split into material, labor (loaded with burden), equipment, trucking and subcontract.
-- Price comes from overhead % plus target margin %, with markup shown alongside. Any unit price can be overridden.
-- **Good / Better / Best** options and optional add-ons.
-- **Measure on the aerial**: outline areas or lengths on satellite imagery to fill quantities.
-- Printable branded proposal; accept with the chosen option and add-ons; one-click job.
+**Estimates** — four steps, each on its own screen:
+1. **Takeoff.** Start from a job-type template (commercial mill & overlay, patch & base repair, new lot, residential driveway, concrete flatwork/curb/ADA, dumpster pad, excavation), a past estimate, or blank.
+   - Measure named areas on the aerial: area, cut-outs for islands and buildings, perimeter, tie-in edges where new paving meets old (these drive the saw-cut LF), linear runs and counts.
+   - Record site-visit notes: surface, access and phasing, drainage, condition.
+2. **Pricing.** Lines stay **linked to the measured areas**: re-measure and every linked line updates, with an optional extra % for overbreak.
+   - **Quick-add** box (press `/`) searches assemblies and cost-book items.
+   - Assemblies calculate hot-mix tons, tack, base, concrete CY, crew days, man-hours and trucking.
+   - Price = cost + overhead + target margin, with margin and markup shown side by side and $/SY.
+   - Good / Better / Best options and add-ons.
+   - Customer view hides costs. Per-line customer and internal notes.
+3. **Review.**
+   - **"Did you address it?" checklist:** filtered by job type, each item answered Included / Excluded / N/A — mobilization, traffic control, 811, permits, saw cut, base repair, drainage, structures, ADA, striping, escalation, concrete joints/cure/pump, undercut, swell…
+   - **Sanity checks:** zero-quantity lines, below-cost lines, no mobilization, under the minimum job charge (one click adds an adjustment), unit prices >25% off past won jobs, stale or placeholder cost book.
+   - **Margin guardrails:** warning under 20%; under 15% needs the owner's approval with a reason.
+   - Optional second look by the other estimator.
+4. **Proposal.** Scope of work generated from the priced lines (editable), plus an exclusions & clarifications library.
+   - Excluded checklist items are added automatically.
+   - Deposit, retainage and validity terms.
+   - Optional **asphalt escalation clause** tied to the MoDOT index.
+   - Live preview; prints to PDF.
 
-**Jobs**
-- Progress and contract versus invoiced and collected.
-- **Budget vs actual** by cost type and production: man-hours, tons, CY, truck hours. Flagged *At risk* when projected cost reaches 110% of the estimate.
+**Sending locks the prices.** Any change after that is a lettered **revision** (Rev B, C…) with a note, and the history shows what changed. Accepting turns the estimate into a job, splitting it into phases (e.g. Milling → Asphalt paving → Striping) with material orders already sized.
 
-**Schedule**
-- Crew × day board with multi-day bars.
-- A sold-work tray: drag, or click a job and then a day.
-- One-click rain day that pushes a crew's work back a working day.
-- Daily dollars and weather go / no-go badges.
-- Conflict flags: expired CDL or medical card, equipment down, double-booking, no-go forecast.
+**Jobs** — every job moves through seven stages: Sold → Getting ready → Scheduled → In progress → Punch & walkthrough → Invoiced → Closed (plus On hold / Cancelled). Each job shows **one next action**. The job page has these tabs:
+- **Overview:**
+  - stage tracker;
+  - health chips: Ready (checklist), Schedule, Money, Billing;
+  - site packet: contact, gate code, notes;
+  - 811 & permit status;
+  - copy-ready customer messages: date confirmed, day before, rain-out, keep-off, review request.
+- **Phases & orders:** each phase has its own crew, dates and start time, plus a **readiness checklist**:
+  - 811 ticket with legal dig and start-by dates worked out under Missouri/Kansas rules;
+  - permit;
+  - material ordered;
+  - striping sub confirmed;
+  - customer told.
+
+  Each phase also carries its **material order**: supplier, mix, tons/CY, first load, trucks or pump, status, confirmation #. Striping can't be booked until the paving has cured (14 days, adjustable).
+- **Change orders:** extra work found in the field (from the daily report) or added by the office, priced, then approved in writing. Approved ones raise the contract and the budget, and pending ones hold up the final invoice. Printable for signature.
+- **Closeout:** punch list (Open → Fixed → Verified); final walkthrough sign-off with a printable sheet; closeout checklist (final invoice, paid, no pending COs, lien waivers, permit final, warranty letter, photos, review request).
+- **Costs:** budget vs actual by cost type and production, including change-order cost. Flagged *At risk* at 110% projected.
+- **Field:** that job's daily reports and time.
+- **Billing.**
+
+**Schedule** — phases, not whole jobs, are what gets scheduled:
+- **Board:**
+  - crews × days, with a row for subs (striping, sealcoat);
+  - a tray of phases waiting for a date — drag, or click then click a day;
+  - **soft readiness gate:** placing a phase that isn't ready lists what's missing and asks for a reason, rather than blocking;
+  - **rain day:** pushes a crew's remaining phases back a working day and flags the material orders to call;
+  - conflict outlines: open checklist items this week, expired CDL, equipment down, overlap, no-go weather, striping too soon.
+- **Tomorrow:** each crew's dispatch sheet — where, start time, contact, access, work, material, 811, crew and equipment. It has a "copy for foreman" text, the day's material orders to place or confirm, and a list of orders that moved and need a call. Printable.
 
 **Crew & time**
 - Foreman crew clock-in and clock-out, with job and cost code pre-filled from the schedule. Clock-out asks about injuries and break minutes. Location is stamped only when chosen.
@@ -97,7 +131,8 @@ The research behind these choices is summarised at the bottom.
   - crew, man-hours (from the clock), hot-mix, base and concrete, truck hours;
   - quantity done and % complete;
   - equipment hours (which advance the hour meters);
-  - four yes/no checks: injury, delay, visitor, extra work;
+  - four yes/no checks: injury, delay, visitor, extra work (a description of the extra work becomes a pending change order for the office to price);
+  - which phase, and "this phase is finished" (which moves the job toward punch & walkthrough);
   - foreman signature; printable.
 - People list with certifications and expiry dates.
 
@@ -140,7 +175,10 @@ manage/
   - Address lookup uses OpenStreetMap's free Nominatim service, fine for one-at-a-time use.
   - The aerial imagery is Esri World Imagery; check Esri's terms before heavy commercial use.
   - The forecast is from api.weather.gov.
+- **811 rules** are built in as Missouri RSMo 319.026 (2–10 working days' notice, effective 8/28/2025) and Kansas K.S.A. 66-1804 (2 full working days; valid 20 days after the start). Always go by the dates on the ticket. The Missouri notice days are a setting.
+- **Escalation clause wording** follows the MoDOT asphalt price index method. Have an attorney look at it before relying on it.
 - **Not built yet:**
+  - editing job-type templates in Settings (they ship with the panel);
   - photos on daily reports;
   - customer e-sign links and texting;
   - pulling website quote-form submissions straight into Leads.
