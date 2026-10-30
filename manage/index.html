@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Max Paving Manage</title>
+  <link rel="icon" type="image/png" href="img/logo-mark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <a class="side__brand" href="#dashboard"><img src="img/logo-white.png" alt="Max Paving" width="1587" height="832"><span>Manage</span></a>
+    <nav class="side__nav" id="nav" aria-label="Sections"></nav>
+    <div class="side__foot">Data is saved in this browser.<br><a href="#settings">Back it up in Settings</a></div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="side"><span></span><span></span><span></span></button>
+      <span class="topbar__title" id="top-title"></span>
+      <span class="topbar__date" id="top-date"></span>
+      <a class="topbar__site" href="https://maxpavingkc.com" target="_blank" rel="noopener">Website ↗</a>
+    </header>
+    <div id="banner"></div>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer__backdrop" data-act="close"></div>
+  <div class="drawer__panel" id="drawer-panel" role="dialog" aria-modal="true"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="print" id="print"></div>
+<script src="app.js"></script>
+</body>
+</html>
