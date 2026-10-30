@@ -74,7 +74,7 @@ function syncPill() {
   const p = $('#sync-pill'); if (!p) return;
   const map = { ok: ['All changes saved', 'ok'], saving: ['Saving…', 'busy'], offline: ['Connection problem', 'bad'], signedout: ['Signed out — reload', 'bad'] };
   const [label, cls] = map[S.status] || map.ok;
-  p.className = `sync-pill sync-pill--${cls}`; p.textContent = label;
+  p.className = `sync-pill sync-pill--${cls}`; p.textContent = label; p.title = label;
 }
 
 /* ---------------------------------------------------------------- quick add */
@@ -188,8 +188,15 @@ function start() {
   topbar();
   render();
 }
+// The logo splash stays up for at least a second from page load, then fades once the first screen is drawn.
+function hideSplash() {
+  const el = $('#splash'); if (!el) return;
+  setTimeout(() => { el.classList.add('is-done'); setTimeout(() => el.remove(), 450); }, Math.max(0, 1000 - performance.now()));
+}
 (async () => {
-  const state = await store.boot();
-  if (state === 'login' || state === 'setup') return authScreen(state);
-  start();
+  try {
+    const state = await store.boot();
+    if (state === 'login' || state === 'setup') authScreen(state);
+    else start();
+  } finally { hideSplash(); }
 })();

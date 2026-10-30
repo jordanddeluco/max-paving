@@ -14,22 +14,29 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash__inner">
+    <img class="splash__logo" src="img/logo-mark.png" alt="" width="812" height="435">
+    <span class="splash__bar"><i></i></span>
+  </div>
+</div>
 <div class="app">
+  <header class="topbar">
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="side"><span></span><span></span><span></span></button>
+    <a class="brand" href="#home" aria-label="Max Paving Manage, home"><img src="img/logo-horizontal.jpg" alt="Max Paving" width="1050" height="248"><span class="brand__tag">Manage</span></a>
+    <span class="topbar__title" id="top-title"></span>
+    <div class="quick">
+      <button type="button" class="btn btn--yellow btn--sm quick__btn" data-act="quick-add" aria-expanded="false" aria-label="New"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
+      <div class="quick__pop" hidden></div>
+    </div>
+    <div class="topbar__user" id="top-user"></div>
+  </header>
   <aside class="side" id="side">
     <a class="side__brand" href="#home"><img src="img/logo-white.png" alt="Max Paving" width="1587" height="832"><span>Manage</span></a>
     <nav class="side__nav" id="nav" aria-label="Sections"></nav>
     <div class="side__foot"><a href="https://maxpavingkc.com" target="_blank" rel="noopener">maxpavingkc.com ↗</a></div>
   </aside>
   <div class="main">
-    <header class="topbar">
-      <button class="menu-btn" id="menu-btn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="side"><span></span><span></span><span></span></button>
-      <span class="topbar__title" id="top-title"></span>
-      <div class="quick">
-        <button type="button" class="btn btn--yellow btn--sm quick__btn" data-act="quick-add" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New</span></button>
-        <div class="quick__pop" hidden></div>
-      </div>
-      <div class="topbar__user" id="top-user"></div>
-    </header>
     <div id="banner"></div>
     <main class="view" id="view"></main>
   </div>
